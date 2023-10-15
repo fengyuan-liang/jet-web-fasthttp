@@ -25,7 +25,6 @@ Vagrantfile
 # Environment temporal files
 vendor/
 bin/
-pkg/
 run/
 record/
 flvdump/
