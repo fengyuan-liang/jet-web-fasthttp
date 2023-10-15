@@ -1,0 +1,51 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+*.cov
+
+# vagrant settings
+.vagrant/
+Vagrantfile
+
+# vscode settings
+.vscode
+
+# goland settings
+.idea
+
+# Environment temporal files
+vendor/
+bin/
+pkg/
+run/
+record/
+flvdump/
+.cache/
+.pid/
+.version
+.DS_Store
+.run
+dump.rdb
+jobs.json
+forwardJobs.json
+
+# devspace
+.devspace/
+
+# log files
+internal/common/service/message/nats/nats_event.log
+internal/common/tracer/test.log
+
+# deploy data
+.mysql
+.grafana
+.prometheus
