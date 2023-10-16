@@ -16,6 +16,6 @@ type handler struct {
 	method *reflect.Value
 }
 
-func (h *handler) ServeHTTP(ctx *fasthttp.RequestCtx) {
+func (h *handler) ServeHTTP(ctx *fasthttp.RequestCtx, args []string) {
 
 }

@@ -1,7 +1,13 @@
+// Copyright The Jet authors. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
 package router
 
 import (
+	"fmt"
 	"strconv"
+	"sync"
 	"testing"
 )
 
@@ -9,6 +15,8 @@ func TestTrie(t *testing.T) {
 	trie := NewRouterTrie[int]("*")
 	trie.Add("/users", 1)
 	trie.Add("/users/*", 2)
+	trie.Add("/users/*/alice", 3)
+	trie.Add("/users/*/alice/*/bob", 4)
 
 	// Test Contains
 	if !trie.Contains("/users") {
@@ -16,9 +24,39 @@ func TestTrie(t *testing.T) {
 	}
 
 	// Test Get
-	value := trie.Get("/users/:id")
+	value := trie.Get("/users/111")
 	if value != 2 {
 		t.Errorf("Expected value 2, got %d", value)
+	}
+
+	// Test Get
+	value = trie.Get("/users/111/alice")
+	if value != 3 {
+		t.Errorf("Expected value 3, got %d", value)
+	}
+
+	value, args := trie.GetAndArgs("/users/111/alice")
+
+	if value != 3 {
+		t.Errorf("Expected value 3, got %d", value)
+	}
+
+	parseInt, _ := strconv.ParseInt(args[0], 10, 32)
+
+	if len(args) != 1 || parseInt != 111 {
+		t.Errorf("Expected args 111, got %v", args)
+	}
+
+	value, args = trie.GetAndArgs("/users/111/alice/abc/bob")
+
+	if value != 4 {
+		t.Errorf("Expected value 3, got %v", value)
+	}
+
+	parseInt, _ = strconv.ParseInt(args[0], 10, 32)
+
+	if len(args) != 2 || parseInt != 111 || args[1] != "abc" {
+		t.Errorf("Expected args abc, got %v", args)
 	}
 
 	// Test StartWith
@@ -37,7 +75,7 @@ func TestTrie(t *testing.T) {
 
 	// Test Size
 	size := trie.Size()
-	if size != 1 {
+	if size != 3 {
 		t.Errorf("Expected size 1, got %d", size)
 	}
 
@@ -46,6 +84,84 @@ func TestTrie(t *testing.T) {
 	if !trie.IsEmpty() {
 		t.Error("Expected trie to be empty after clearing")
 	}
+}
+
+func TestTrieConcurrentAccess(t *testing.T) {
+	trie := NewRouterTrie[string]("/")
+	wg := sync.WaitGroup{}
+	numRoutines := 100
+	numOperations := 1000
+	for i := 0; i < numRoutines; i++ {
+		wg.Add(1)
+		i := i
+		go func() {
+			defer wg.Done()
+			for j := 0; j < numOperations; j++ {
+				path := fmt.Sprintf("/path-%d-%d", i, j)
+				trie.Add(path, path)
+				value := trie.Get(path)
+				if value != path {
+					t.Errorf("Incorrect value for path %s: expected %s, got %s", path, path, value)
+				}
+				trie.Remove(path)
+				value = trie.Get(path)
+				if value != "" {
+					t.Errorf("Remove failed for path %s: value still exists: %s", path, value)
+				}
+			}
+		}()
+	}
+	wg.Wait()
+}
+
+func TestTrieConcurrentContains(t *testing.T) {
+	trie := NewRouterTrie[string]("/")
+	numPaths := 100
+	for i := 0; i < numPaths; i++ {
+		path := fmt.Sprintf("/path-%d", i)
+		trie.Add(path, path)
+	}
+	wg := sync.WaitGroup{}
+	numRoutines := 100
+	for i := 0; i < numRoutines; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for j := 0; j < numPaths; j++ {
+				path := fmt.Sprintf("/path-%d", j)
+				contains := trie.Contains(path)
+				if !contains {
+					t.Errorf("Contains failed for path %s", path)
+				}
+			}
+		}()
+	}
+	wg.Wait()
+}
+
+func TestTrieConcurrentStartWith(t *testing.T) {
+	trie := NewRouterTrie[string]("/")
+	numPaths := 100
+	for i := 0; i < numPaths; i++ {
+		path := fmt.Sprintf("/path-%d", i)
+		trie.Add(path, path)
+	}
+	wg := sync.WaitGroup{}
+	numRoutines := 100
+	for i := 0; i < numRoutines; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for j := 0; j < numPaths; j++ {
+				prefix := fmt.Sprintf("/path-%d", j)
+				startsWith := trie.StartWith(prefix)
+				if !startsWith {
+					t.Errorf("StartWith failed for prefix %s", prefix)
+				}
+			}
+		}()
+	}
+	wg.Wait()
 }
 
 /* ------------------------------------------------------
