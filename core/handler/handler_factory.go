@@ -5,27 +5,50 @@
 package handler
 
 import (
+	"errors"
 	"jet-web/pkg/constant"
 	"reflect"
 )
 
 // ---------------------------------------------------------------------------
 
-type HandlerFactory []*HandlerCreator
+var ErrMethodPrefix = errors.New("invalid method name prefix")
+
+type HandlerFactory map[string]CreatorFunc
 
 var defaultHandlerCreator = HandlerCreator{}.New
 
 var Factory = HandlerFactory{
-	{constant.MethodGet, handlerGetCreator},
-	{constant.MethodPost, defaultHandlerCreator},
-	{constant.MethodPut, defaultHandlerCreator},
-	{constant.MethodDelete, defaultHandlerCreator},
+	constant.MethodGet:    handlerGetCreator,
+	constant.MethodPost:   defaultHandlerCreator,
+	constant.MethodPut:    defaultHandlerCreator,
+	constant.MethodDelete: defaultHandlerCreator,
 }
 
-func AddHandlerCreator(methodPrefix string, creatorFunc CreatorFunc) {
-	Factory = append(Factory, &HandlerCreator{methodPrefix, creatorFunc})
+func (factory HandlerFactory) Create(rcvr *reflect.Value, method *reflect.Method) (string, IHandler, error) {
+	prefix, ok := prefixOf(method.Name)
+	if !ok {
+		return "", nil, ErrMethodPrefix
+	}
+	if creatorFunc, ok := factory[prefix]; ok {
+		h, err := creatorFunc(rcvr, method)
+		if err != nil {
+			return prefix, h, nil
+		}
+		return "", nil, err
+	}
+	return "", nil, ErrMethodPrefix
 }
 
-func (r *HandlerFactory) CreateHandlerFunc(rcvr *reflect.Value, method *reflect.Value) (string, IHandler, error) {
-	return "", nil, nil
+type creatorRegisterFunc func(factory HandlerFactory) (creatorFunc CreatorFunc)
+
+// RegisterFactory
+// You can replace the default factory implementation,
+// but you must bear the risk for this.
+// Calmly, you can also add new factories to implement your own processing logic.
+//
+// You can enhance the default factory or do some pre- or post-processing,
+// like before- or after-RegisterHook.
+func (factory HandlerFactory) RegisterFactory(prefix string, newFactoryFunc creatorRegisterFunc) {
+	factory[prefix] = newFactoryFunc(factory)
 }

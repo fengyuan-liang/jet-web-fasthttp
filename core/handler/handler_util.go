@@ -43,3 +43,16 @@ func isJsonCall(req *fasthttp.Request) bool {
 
 	return ct == "application/json" || strings.HasPrefix(ct, "application/json;")
 }
+
+func prefixOf(name string) (prefix string, ok bool) {
+
+	if !constant.Is(constant.UPPER, rune(name[0])) {
+		return
+	}
+	for i := 1; i < len(name); i++ {
+		if !constant.Is(constant.LOWER, rune(name[i])) {
+			return name[:i], true
+		}
+	}
+	return
+}

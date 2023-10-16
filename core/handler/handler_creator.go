@@ -20,6 +20,7 @@ func (p *HandlerCreator) New(rcvr *reflect.Value, method *reflect.Method) (IHand
 	return nil, nil
 }
 
+// handlerGetCreator Creator for handling HTTP get requests
 var handlerGetCreator = func(rcvr *reflect.Value, method *reflect.Method) (IHandler, error) {
 	h := new(handler)
 	return h, nil
