@@ -12,8 +12,11 @@ import (
 type HandlerFunc = func(ctx *fasthttp.RequestCtx) error
 
 type handler struct {
-	rcvr   *reflect.Value
-	method *reflect.Value
+	rcvr             *reflect.Value
+	method           *reflect.Method
+	ctxType          contextType
+	parametersType   parametersType
+	returnValuesType returnValuesType
 }
 
 func (h *handler) ServeHTTP(ctx *fasthttp.RequestCtx, args []string) {

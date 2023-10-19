@@ -26,7 +26,7 @@ type ITrie[V any] interface {
 type SplitPathFunc = func(k string) []string
 
 var defaultSplitPathFunc = func(path string) []string {
-	return strings.Split(path, "/")
+	return strings.Split(path, "/")[1:]
 }
 
 type Trie[V any] struct {
@@ -119,7 +119,7 @@ func (t *Trie[V]) Add(path string, v V) (overwrittenValue V) {
 
 	// dynamic router
 	currentNode := t.root
-	for _, subPath := range t.splitFunc(path)[1:] {
+	for _, subPath := range t.splitFunc(path) {
 		childNode, ok := currentNode.getOrCreateChildren()[subPath]
 		if !ok {
 			childNode = &TrieNode[V]{}
@@ -175,7 +175,7 @@ func (t *Trie[V]) node(path string) *TrieNode[V] {
 	}
 	currentNode := t.root
 	dynamicRoutingArgs := make([]string, 0)
-	for _, subPath := range t.splitFunc(path)[1:] {
+	for _, subPath := range t.splitFunc(path) {
 		childNode, ok := currentNode.children[subPath]
 		if !ok {
 			if v, ok := currentNode.children[t.separator]; ok {

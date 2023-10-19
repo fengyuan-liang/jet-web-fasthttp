@@ -5,6 +5,7 @@
 package context
 
 import (
+	"context"
 	"github.com/valyala/fasthttp"
 	"jet-web/pkg/xlog"
 )
@@ -12,6 +13,8 @@ import (
 // Ctx represents the Context which holds the HTTP request and response.
 // It has methods for the request query string, parameters, body, HTTP headers, and so on.
 type Ctx struct {
+	context.Context
+
 	log  *xlog.Logger // log for context
 	req  *fasthttp.Request
 	resp *fasthttp.Response

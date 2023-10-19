@@ -4,6 +4,15 @@
 
 package jet
 
-func Run(str string) {
+import (
+	"github.com/valyala/fasthttp"
+	"jet-web/core/router"
+)
+
+func Run(addr string) error {
+	return fasthttp.ListenAndServe(addr, router.ServeHTTP)
+}
+
+func Register(controller any) {
 
 }

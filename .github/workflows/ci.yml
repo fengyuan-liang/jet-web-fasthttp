@@ -1,0 +1,46 @@
+name: Go Test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.18
+
+      - name: gofmt
+        run: find . -name "*.go" |  xargs gofmt -s -l -e
+
+      - name: govet
+        run: go list ./... | xargs go vet -composites=false
+
+  build:
+    runs-on: ubuntu-latest
+    needs: check
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.18
+
+      - name: Run tests
+        run: go test ./...
+
+      - name: Handle test failures
+        if: failure()
+        run: |
+          echo "Tests failed. Please check the test results."
+          exit 1

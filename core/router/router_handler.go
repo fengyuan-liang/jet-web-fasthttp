@@ -11,6 +11,7 @@ import (
 
 type IJetRouter interface {
 	ServeHTTP(ctx *fasthttp.RequestCtx)
+	RegisterRouter(path string, handler handler.IHandler)
 }
 
 func NewJetRouter(separator string, f ...SplitPathFunc) IJetRouter {
@@ -21,10 +22,14 @@ type JetRouter struct {
 	trie ITrie[handler.IHandler]
 }
 
+func (r *JetRouter) RegisterRouter(path string, handler handler.IHandler) {
+	r.trie.Add(path, handler)
+}
+
 func (r *JetRouter) ServeHTTP(ctx *fasthttp.RequestCtx) {
 	requestURI := ctx.Request.RequestURI()
-	if handler, args := r.trie.GetAndArgs(string(requestURI)); handler != nil {
-		handler.ServeHTTP(ctx, args)
+	if h, args := r.trie.GetAndArgs(string(requestURI)); h != nil {
+		h.ServeHTTP(ctx, args)
 	} else {
 		notFoundHandler(ctx)
 	}
