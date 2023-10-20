@@ -27,8 +27,8 @@ func (r *JetRouter) RegisterRouter(path string, handler handler.IHandler) {
 }
 
 func (r *JetRouter) ServeHTTP(ctx *fasthttp.RequestCtx) {
-	requestURI := ctx.Request.RequestURI()
-	if h, args := r.trie.GetAndArgs(string(requestURI)); h != nil {
+	requestURI := convertToFirstLetterUpper(ctx.Method()) + string(ctx.Request.RequestURI())
+	if h, args := r.trie.GetAndArgs(requestURI); h != nil {
 		h.ServeHTTP(ctx, args)
 	} else {
 		notFoundHandler(ctx)

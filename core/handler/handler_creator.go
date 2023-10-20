@@ -92,7 +92,7 @@ func (p HandlerCreator) New(rcvr *reflect.Value, method *reflect.Method) (IHandl
 		if in.Kind() == reflect.Ptr {
 			in = in.Elem()
 		} else {
-			handlerCreatorLog.Debugf("method", methodName, "arg type not a pointer:", in.Kind())
+			handlerCreatorLog.Debug("method", methodName, "arg type not a pointer:", in.Kind())
 			return nil, syscall.EINVAL
 		}
 		if in.Implements(typeOfCtx) {
@@ -106,13 +106,13 @@ func (p HandlerCreator) New(rcvr *reflect.Value, method *reflect.Method) (IHandl
 		if firstIn.Kind() == reflect.Ptr {
 			firstIn = firstIn.Elem()
 		} else {
-			handlerCreatorLog.Debugf("method", methodName, "first arg type not a pointer:", firstIn.Kind())
+			handlerCreatorLog.Debug("method", methodName, "first arg type not a pointer:", firstIn.Kind())
 			return nil, syscall.EINVAL
 		}
 		if secondIn.Kind() == reflect.Ptr {
 			secondIn = secondIn.Elem()
 		} else {
-			handlerCreatorLog.Debugf("method", methodName, "second arg type not a pointer:", secondIn.Kind())
+			handlerCreatorLog.Debug("method", methodName, "second arg type not a pointer:", secondIn.Kind())
 			return nil, syscall.EINVAL
 		}
 		if firstIn.Implements(typeOfCtx) {
@@ -130,7 +130,7 @@ func (p HandlerCreator) New(rcvr *reflect.Value, method *reflect.Method) (IHandl
 		if out.Kind() == reflect.Ptr {
 			out = out.Elem()
 		} else {
-			handlerCreatorLog.Debugf("method", methodName, "return value type not a pointer:", out.Kind())
+			handlerCreatorLog.Debug("method", methodName, "return value type not a pointer:", out.Kind())
 			return nil, syscall.EINVAL
 		}
 		if out.Implements(typeOfError) {
@@ -143,13 +143,13 @@ func (p HandlerCreator) New(rcvr *reflect.Value, method *reflect.Method) (IHandl
 		if firstOut.Kind() == reflect.Ptr {
 			firstOut = firstOut.Elem()
 		} else {
-			handlerCreatorLog.Debugf("method", methodName, "first return value type not a pointer:", firstOut.Kind())
+			handlerCreatorLog.Debug("method", methodName, "first return value type not a pointer:", firstOut.Kind())
 			return nil, syscall.EINVAL
 		}
 		if secondOut.Kind() == reflect.Ptr {
 			secondOut = secondOut.Elem()
 		} else {
-			handlerCreatorLog.Debugf("method", methodName, "second return value type not a pointer:", secondOut.Kind())
+			handlerCreatorLog.Debug("method", methodName, "second return value type not a pointer:", secondOut.Kind())
 			return nil, syscall.EINVAL
 		}
 		if firstOut.Implements(typeOfError) {

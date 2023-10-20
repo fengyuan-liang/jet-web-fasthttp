@@ -12,7 +12,7 @@ import (
 )
 
 func TestTrie(t *testing.T) {
-	trie := NewRouterTrie[int]("*")
+	trie := NewRouterTrieWith[int]("*", defaultSplitPathFunc, defaultSplitMethodFunc)
 	trie.Add("/users", 1)
 	trie.Add("/users/*", 2)
 	trie.Add("/users/*/alice", 3)
@@ -87,7 +87,7 @@ func TestTrie(t *testing.T) {
 }
 
 func TestTrieConcurrentAccess(t *testing.T) {
-	trie := NewRouterTrie[string]("/")
+	trie := NewRouterTrieWith[string]("/", defaultSplitPathFunc, defaultSplitMethodFunc)
 	wg := sync.WaitGroup{}
 	numRoutines := 100
 	numOperations := 1000
@@ -115,7 +115,7 @@ func TestTrieConcurrentAccess(t *testing.T) {
 }
 
 func TestTrieConcurrentContains(t *testing.T) {
-	trie := NewRouterTrie[string]("/")
+	trie := NewRouterTrieWith[string]("/", defaultSplitPathFunc, defaultSplitMethodFunc)
 	numPaths := 100
 	for i := 0; i < numPaths; i++ {
 		path := fmt.Sprintf("/path-%d", i)
@@ -140,7 +140,7 @@ func TestTrieConcurrentContains(t *testing.T) {
 }
 
 func TestTrieConcurrentStartWith(t *testing.T) {
-	trie := NewRouterTrie[string]("/")
+	trie := NewRouterTrieWith[string]("/", defaultSplitPathFunc, defaultSplitMethodFunc)
 	numPaths := 100
 	for i := 0; i < numPaths; i++ {
 		path := fmt.Sprintf("/path-%d", i)

@@ -6,6 +6,8 @@ package handler
 
 import (
 	"github.com/valyala/fasthttp"
+	"jet-web/pkg/constant"
+	"jet-web/pkg/xlog"
 	"reflect"
 )
 
@@ -19,6 +21,21 @@ type handler struct {
 	returnValuesType returnValuesType
 }
 
-func (h *handler) ServeHTTP(ctx *fasthttp.RequestCtx, args []string) {
+var handlerLog = xlog.NewWith("handler_log")
 
+func (h *handler) ServeHTTP(ctx *fasthttp.RequestCtx, args []string) {
+	switch string(ctx.Method()) {
+	case constant.MethodGet:
+		h.handleGetRequest(ctx, args)
+	case constant.MethodPost, constant.MethodPut:
+	case constant.MethodHead:
+
+	}
+}
+
+func (h *handler) handleGetRequest(ctx *fasthttp.RequestCtx, args []string) {
+	var (
+		uri = ctx.URI().String()
+	)
+	handlerLog.Infof("handle uri[%s]", uri)
 }

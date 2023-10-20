@@ -6,7 +6,7 @@ package router
 
 import (
 	"github.com/valyala/fasthttp"
-	"unicode"
+	"strings"
 )
 
 func notFoundHandler(ctx *fasthttp.RequestCtx) {
@@ -14,20 +14,62 @@ func notFoundHandler(ctx *fasthttp.RequestCtx) {
 	ctx.SetBodyString("404 Not Found")
 }
 
-var splitCamelCaseFunc = func(s string) []string {
-	var result []string
-	start := 0
+// if sep is [_]
+// AppleBanana => ["apple", "banana"]
+// Apple_Banana => ["apple", "*", "banana"]
+// AppleBanana_ => ["apple", "banana", "*"]
+// Apple_Banana_ => ["apple", "*", "banana", "*"]
+// ...
+func splitCamelCaseFunc(method string, sep string) (pattern []string) {
+	defer func() {
+		if len(pattern) != 0 {
+			for index, sub := range pattern {
+				if sub == sep {
+					continue
+				}
+				pattern[index] = strings.ToLower(sub[:1]) + sub[1:]
+			}
+		}
+	}()
+	for method != "" {
+		pos := strings.Index(method, sep)
+		if pos == -1 {
+			return appendPattern(pattern, method)
+		}
+		if pos > 0 {
+			pattern = appendPattern(pattern, method[:pos])
+		}
+		pattern = append(pattern, sep)
+		method = method[pos+len(sep):]
+	}
+	return
+}
 
-	for i := 1; i < len(s); i++ {
-		if unicode.IsUpper(rune(s[i])) {
-			result = append(result, s[start:i])
-			start = i
+func appendPattern(pattern []string, method string) []string {
+	var i, last int
+	for i = 1; i < len(method); i++ {
+		c := method[i]
+		if c >= 'A' && c <= 'Z' {
+			pattern = append(pattern, method[last:i])
+			last = i
+		}
+	}
+	return append(pattern, method[last:i])
+}
+
+func convertToCamelCase(path []byte) string {
+	components := strings.Split(string(path), "/")
+
+	var result string
+	for _, component := range components {
+		if component != "" {
+			result += strings.Title(component)
 		}
 	}
 
-	if start < len(s) {
-		result = append(result, s[start:])
-	}
-
 	return result
+}
+
+func convertToFirstLetterUpper(method []byte) string {
+	return strings.ToLower(string(method))
 }

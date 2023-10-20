@@ -72,13 +72,13 @@ type Logger struct {
 // The prefix appears at the beginning of each generated log line.
 // The flag argument defines the logging properties.
 func New(out io.Writer, prefix string, flag int) *Logger {
-	return &Logger{out: out, prefix: prefix, Level: 1, flag: flag, ReqId: genReqId()}
+	return &Logger{out: out, prefix: "", Level: 1, flag: flag, ReqId: genReqId()}
 }
 
 var Std = New(os.Stderr, "", Ldefault)
 
 func NewWith(prefix string) *Logger {
-	return New(os.Stderr, prefix+" ", Ldefault)
+	return New(os.Stderr, prefix, Ldefault)
 }
 
 var genReqId = defaultGenReqId

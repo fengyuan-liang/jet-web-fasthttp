@@ -8,6 +8,7 @@ import (
 	"errors"
 	"jet-web/pkg/constant"
 	"reflect"
+	"strings"
 )
 
 // ---------------------------------------------------------------------------
@@ -30,12 +31,12 @@ func (factory HandlerFactory) Create(rcvr *reflect.Value, method *reflect.Method
 	if !ok {
 		return "", nil, ErrMethodPrefix
 	}
-	if creatorFunc, ok := factory[prefix]; ok {
+	if creatorFunc, ok := factory[strings.ToUpper(prefix)]; ok {
 		h, err = creatorFunc(rcvr, method)
 		if err != nil {
-			return prefix, h, nil
+			return "", nil, err
 		}
-		return "", nil, err
+		return prefix, h, nil
 	}
 	return "", nil, ErrMethodPrefix
 }

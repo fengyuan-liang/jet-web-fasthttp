@@ -24,16 +24,30 @@ type ITrie[V any] interface {
 }
 
 type SplitPathFunc = func(k string) []string
+type SplitMethodFunc = func(k string, separator string) []string
 
 var defaultSplitPathFunc = func(path string) []string {
-	return strings.Split(path, "/")[1:]
+	split := strings.Split(path, "/")
+	if len(split) > 0 && split[0] == "" {
+		return split[1:]
+	}
+	return split
+}
+
+var defaultSplitMethodFunc = func(path string, _ string) []string {
+	split := strings.Split(path, "/")
+	if len(split) > 0 && split[0] == "" {
+		return split[1:]
+	}
+	return split
 }
 
 type Trie[V any] struct {
-	size      int           // size of node
-	root      *TrieNode[V]  // root of trie
-	splitFunc SplitPathFunc // split func of full path
-	separator string        // separator to split dynamic router args
+	size            int             // size of node
+	root            *TrieNode[V]    // root of trie
+	splitPathFunc   SplitPathFunc   // split func of full path
+	splitMethodFunc SplitMethodFunc // split func of full path
+	separator       string          // separator to split dynamic router args
 	// Optimized fields
 	staticRouterMap map[string]V
 	regex           *regexp.Regexp
@@ -54,16 +68,27 @@ func (n *TrieNode[V]) getOrCreateChildren() map[string]*TrieNode[V] {
 	return n.children
 }
 
-func NewRouterTrie[V any](separator string, f ...SplitPathFunc) ITrie[V] {
+func NewRouterTrie[V any](separator string, splitPathFuncs ...SplitPathFunc) ITrie[V] {
+	splitPathFunc := defaultSplitPathFunc
+	if len(splitPathFuncs) > 0 {
+		splitPathFunc = splitPathFuncs[0]
+	}
+	return NewRouterTrieWith[V](separator, splitPathFunc, nil)
+}
+
+func NewRouterTrieWith[V any](separator string, splitPathFunc SplitPathFunc, splitMethodFunc SplitMethodFunc) ITrie[V] {
 	pattern := fmt.Sprintf("[%s]", separator)
 	regex, _ := regexp.Compile(pattern)
-	splitPathFunc := defaultSplitPathFunc
-	if len(f) > 0 {
-		splitPathFunc = f[0]
+	if splitPathFunc == nil {
+		splitPathFunc = defaultSplitPathFunc
+	}
+	if splitMethodFunc == nil {
+		splitMethodFunc = splitCamelCaseFunc
 	}
 	return &Trie[V]{
 		root:            &TrieNode[V]{},
-		splitFunc:       splitPathFunc,
+		splitPathFunc:   splitPathFunc,
+		splitMethodFunc: splitMethodFunc,
 		separator:       separator,
 		staticRouterMap: make(map[string]V),
 		regex:           regex,
@@ -119,7 +144,7 @@ func (t *Trie[V]) Add(path string, v V) (overwrittenValue V) {
 
 	// dynamic router
 	currentNode := t.root
-	for _, subPath := range t.splitFunc(path) {
+	for _, subPath := range t.splitMethodFunc(path, t.separator) {
 		childNode, ok := currentNode.getOrCreateChildren()[subPath]
 		if !ok {
 			childNode = &TrieNode[V]{}
@@ -175,7 +200,7 @@ func (t *Trie[V]) node(path string) *TrieNode[V] {
 	}
 	currentNode := t.root
 	dynamicRoutingArgs := make([]string, 0)
-	for _, subPath := range t.splitFunc(path) {
+	for _, subPath := range t.splitPathFunc(path) {
 		childNode, ok := currentNode.children[subPath]
 		if !ok {
 			if v, ok := currentNode.children[t.separator]; ok {
