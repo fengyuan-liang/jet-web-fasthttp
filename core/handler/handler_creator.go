@@ -38,18 +38,18 @@ const (
 
 const (
 	noParameter                  parametersType = iota
-	oneParameterAndFirstIsCtx                   // only one parameter and parameter is ctx
-	oneParameterAndFirstNotIsCtx                // only one parameter and parameter not is ctx
-	TwoParameterAndFirstIsCtx                   // two parameter and the first parameter is ctx
-	TwoParameterAndSecondIsCtx                  // two parameter and the second parameter is ctx
+	oneParameterAndFirstIsCtx                   // only one parameter and parameter are ctx
+	oneParameterAndFirstNotIsCtx                // only one parameter and parameter not are ctx
+	twoParameterAndFirstIsCtx                   // two parameters and the first parameter is ctx
+	twoParameterAndSecondIsCtx                  // two parameters and the second parameter are ctx
 )
 
 const (
 	noReturnValue                  returnValuesType = iota
 	OneReturnValueAndIsError                        // only return value and is error
-	OneReturnValueAndNotError                       // only return value and not is error
-	TwoReturnValueAndFirstIsError                   // two return value and the first  is error
-	TwoReturnValueAndSecondIsError                  // two return value and the second is error
+	OneReturnValueAndNotError                       // only return value and not an error
+	twoReturnValueAndFirstIsError                   // two return value and the first is error
+	twoReturnValueAndSecondIsError                  // two return value and the second is error
 )
 
 var handlerCreatorLog = xlog.NewWith("handle_create_log")
@@ -69,7 +69,7 @@ var handlerCreatorLog = xlog.NewWith("handle_create_log")
 func (p HandlerCreator) New(rcvr *reflect.Value, method *reflect.Method) (IHandler, error) {
 	var (
 		mtype           = method.Type
-		methodNumIn     = mtype.NumIn()
+		methodNumIn     = mtype.NumIn() - 1
 		methodNumOut    = mtype.NumOut()
 		methodName      = method.Name
 		ctxType         = noCtx
@@ -88,21 +88,23 @@ func (p HandlerCreator) New(rcvr *reflect.Value, method *reflect.Method) (IHandl
 	}
 	switch methodNumIn {
 	case 1:
-		in := mtype.In(0)
+		in := mtype.In(1)
 		if in.Kind() == reflect.Ptr {
-			in = in.Elem()
-		} else {
-			handlerCreatorLog.Debug("method", methodName, "arg type not a pointer:", in.Kind())
-			return nil, syscall.EINVAL
-		}
-		if in.Implements(typeOfCtx) {
-			ctxType++
-			parameterType = oneParameterAndFirstIsCtx
+			if in.Implements(typeOfCtx) {
+				ctxType++
+				parameterType = oneParameterAndFirstIsCtx
+			} else {
+				parameterType = oneParameterAndFirstNotIsCtx
+			}
+		} else if in.Kind() == reflect.Struct {
+			if in == typeOfCtx {
+				parameterType = oneParameterAndFirstIsCtx
+			}
 		} else {
 			parameterType = oneParameterAndFirstNotIsCtx
 		}
 	case 2:
-		firstIn, secondIn := mtype.In(0), mtype.In(1)
+		firstIn, secondIn := mtype.In(1), mtype.In(2)
 		if firstIn.Kind() == reflect.Ptr {
 			firstIn = firstIn.Elem()
 		} else {
@@ -117,10 +119,10 @@ func (p HandlerCreator) New(rcvr *reflect.Value, method *reflect.Method) (IHandl
 		}
 		if firstIn.Implements(typeOfCtx) {
 			ctxType++
-			parameterType = TwoParameterAndFirstIsCtx
+			parameterType = twoParameterAndFirstIsCtx
 		} else if secondIn.Implements(typeOfCtx) {
 			ctxType++
-			parameterType = TwoParameterAndSecondIsCtx
+			parameterType = twoParameterAndSecondIsCtx
 		}
 	}
 	// NumOut
@@ -128,12 +130,12 @@ func (p HandlerCreator) New(rcvr *reflect.Value, method *reflect.Method) (IHandl
 	case 1:
 		out := mtype.Out(0)
 		if out.Kind() == reflect.Ptr {
-			out = out.Elem()
-		} else {
-			handlerCreatorLog.Debug("method", methodName, "return value type not a pointer:", out.Kind())
-			return nil, syscall.EINVAL
-		}
-		if out.Implements(typeOfError) {
+			if out.Implements(typeOfError) {
+				returnValueType = OneReturnValueAndIsError
+			} else {
+				returnValueType = OneReturnValueAndNotError
+			}
+		} else if out == typeOfError {
 			returnValueType = OneReturnValueAndIsError
 		} else {
 			returnValueType = OneReturnValueAndNotError
@@ -153,9 +155,9 @@ func (p HandlerCreator) New(rcvr *reflect.Value, method *reflect.Method) (IHandl
 			return nil, syscall.EINVAL
 		}
 		if firstOut.Implements(typeOfError) {
-			returnValueType = TwoReturnValueAndFirstIsError
+			returnValueType = twoReturnValueAndFirstIsError
 		} else if secondOut.Implements(typeOfError) {
-			returnValueType = TwoReturnValueAndSecondIsError
+			returnValueType = twoReturnValueAndSecondIsError
 		}
 	}
 	return &handler{
@@ -167,8 +169,8 @@ func (p HandlerCreator) New(rcvr *reflect.Value, method *reflect.Method) (IHandl
 	}, nil
 }
 
-// handlerGetCreator Creator for handling HTTP get requests
-var handlerGetCreator = func(rcvr *reflect.Value, method *reflect.Method) (IHandler, error) {
-
-	return &handler{rcvr: rcvr, method: method}, nil
-}
+//// handlerGetCreator Creator for handling HTTP get requests
+//var handlerGetCreator = func(rcvr *reflect.Value, method *reflect.Method) (IHandler, error) {
+//	h := new(handler)
+//	return h, nil
+//}

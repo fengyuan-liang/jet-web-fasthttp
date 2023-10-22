@@ -45,8 +45,8 @@ var defaultSplitMethodFunc = func(path string, _ string) []string {
 type Trie[V any] struct {
 	size            int             // size of node
 	root            *TrieNode[V]    // root of trie
-	splitPathFunc   SplitPathFunc   // split func of full path
-	splitMethodFunc SplitMethodFunc // split func of full path
+	splitPathFunc   SplitPathFunc   // split func of a full path
+	splitMethodFunc SplitMethodFunc // split func of a full path
 	separator       string          // separator to split dynamic router args
 	// Optimized fields
 	staticRouterMap map[string]V
@@ -132,7 +132,7 @@ func (t *Trie[V]) Add(path string, v V) (overwrittenValue V) {
 
 	t.keyCheck(path)
 
-	// if path is a static router
+	// if a path is a static router
 	if ok := t.regex.MatchString(path); !ok {
 		if value, ok := t.staticRouterMap[path]; ok {
 			overwrittenValue = value

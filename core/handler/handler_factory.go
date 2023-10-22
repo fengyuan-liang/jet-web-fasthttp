@@ -20,7 +20,7 @@ type HandlerFactory map[string]CreatorFunc
 var defaultHandlerCreator = HandlerCreator{}.New
 
 var Factory = HandlerFactory{
-	constant.MethodGet:    handlerGetCreator,
+	constant.MethodGet:    defaultHandlerCreator,
 	constant.MethodPost:   defaultHandlerCreator,
 	constant.MethodPut:    defaultHandlerCreator,
 	constant.MethodDelete: defaultHandlerCreator,

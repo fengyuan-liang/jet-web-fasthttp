@@ -71,14 +71,14 @@ type Logger struct {
 // destination to which log data will be written.
 // The prefix appears at the beginning of each generated log line.
 // The flag argument defines the logging properties.
-func New(out io.Writer, prefix string, flag int) *Logger {
-	return &Logger{out: out, prefix: "", Level: 1, flag: flag, ReqId: genReqId()}
+func New(out io.Writer, prefix string, flag int, reqId string) *Logger {
+	return &Logger{out: out, prefix: prefix, Level: 1, flag: flag, ReqId: reqId}
 }
 
-var Std = New(os.Stderr, "", Ldefault)
+var Std = New(os.Stderr, "", Ldefault, "")
 
 func NewWith(prefix string) *Logger {
-	return New(os.Stderr, prefix, Ldefault)
+	return New(os.Stderr, prefix, Ldefault, "")
 }
 
 var genReqId = defaultGenReqId
@@ -143,9 +143,6 @@ func shortFile(file string, flag int) string {
 }
 
 func (l *Logger) formatHeader(buf *bytes.Buffer, t time.Time, file string, line int, lvl int, reqId string) {
-	if l.prefix != "" {
-		buf.WriteString(l.prefix)
-	}
 	if l.flag&(Ldate|Ltime|Lmicroseconds) != 0 {
 		if l.flag&Ldate != 0 {
 			year, month, day := t.Date()
@@ -170,6 +167,12 @@ func (l *Logger) formatHeader(buf *bytes.Buffer, t time.Time, file string, line 
 			buf.WriteByte(' ')
 		}
 	}
+	if l.prefix != "" {
+		buf.WriteByte('[')
+		buf.WriteString(l.prefix)
+		buf.WriteByte(']')
+	}
+
 	if reqId != "" {
 		buf.WriteByte('[')
 		buf.WriteString(reqId)
@@ -206,7 +209,7 @@ func (l *Logger) Output(reqId string, lvl int, calldepth int, s string) error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if l.flag&(Lshortfile|Llongfile|Lmodule) != 0 {
-		// release lock while getting caller info - it's expensive.
+		// release lock, while getting caller info - it's expensive.
 		l.mu.Unlock()
 		var ok bool
 		_, file, line, ok = runtime.Caller(calldepth)
@@ -364,7 +367,7 @@ func (l *Logger) Stat() (stats []int64) {
 	return v[:]
 }
 
-// Flags returns the output flags for the logger.
+// Flags return the output flags for the logger.
 func (l *Logger) Flags() int {
 	l.mu.Lock()
 	defer l.mu.Unlock()

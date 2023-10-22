@@ -7,6 +7,7 @@ package handler
 import (
 	"github.com/valyala/fasthttp"
 	"jet-web/pkg/constant"
+	"jet-web/pkg/utils"
 	"jet-web/pkg/xlog"
 	"reflect"
 )
@@ -33,9 +34,53 @@ func (h *handler) ServeHTTP(ctx *fasthttp.RequestCtx, args []string) {
 	}
 }
 
-func (h *handler) handleGetRequest(ctx *fasthttp.RequestCtx, args []string) {
+func (h *handler) handleGetRequest(ctx *fasthttp.RequestCtx, args []string) (err error) {
 	var (
-		uri = ctx.URI().String()
+		uri        = ctx.URI().String()
+		mtype      = h.method.Type
+		methodArgs = []reflect.Value{*h.rcvr}
 	)
-	handlerLog.Infof("handle uri[%s]", uri)
+	handlerLog.Debugf("handle uri[%s]", uri)
+	switch h.parametersType {
+	case oneParameterAndFirstIsCtx:
+
+	case oneParameterAndFirstNotIsCtx:
+		println(mtype.In(1).Name())
+		value := reflect.New(mtype.In(1).Elem())
+		if err = parseReqDefault(ctx, value, args); err != nil {
+			return
+		}
+		methodArgs = append(methodArgs, value)
+	case twoParameterAndFirstIsCtx:
+
+	case twoParameterAndSecondIsCtx:
+
+	}
+	h.method.Func.Call(methodArgs)
+	return
+}
+
+func setCtx(ctx *fasthttp.RequestCtx) {
+
+}
+
+func parseReqDefault(ctx *fasthttp.RequestCtx, param reflect.Value, args []string) (err error) {
+	// query path
+	if len(args) > 0 {
+		v := param.Elem().FieldByName("CmdArgs")
+		if v.IsValid() {
+			v.Set(reflect.ValueOf(args))
+			if param.Elem().NumField() == 1 {
+				return
+			}
+		}
+	}
+	if isJsonCall(&ctx.Request) {
+		if ctx.Request.Header.ContentLength() == 0 {
+			return
+		}
+		return utils.Decode(ctx.Request.BodyStream(), param.Interface())
+	} else {
+		return parseValue(param, ctx, "form")
+	}
 }
