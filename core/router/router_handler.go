@@ -31,6 +31,6 @@ func (r *JetRouter) ServeHTTP(ctx *fasthttp.RequestCtx) {
 	if h, args := r.trie.GetAndArgs(requestURI); h != nil {
 		h.ServeHTTP(ctx, args)
 	} else {
-		notFoundHandler(ctx)
+		handler.NotFoundHandler(ctx)
 	}
 }

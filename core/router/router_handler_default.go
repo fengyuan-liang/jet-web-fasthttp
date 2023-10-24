@@ -25,9 +25,8 @@ func Register(rcvrs ...interface{}) {
 
 func register(rcvr interface{}) {
 	var (
-		typ    = reflect.TypeOf(rcvr)
-		val    = reflect.ValueOf(rcvr)
-		method reflect.Method
+		typ = reflect.TypeOf(rcvr)
+		val = reflect.ValueOf(rcvr)
 	)
 	if typ.Kind() != reflect.Ptr {
 		xlog.Infof("receiver [%s] not pointer, Jet recommends passing a pointer as the receiver.", typ.Name())
@@ -36,7 +35,7 @@ func register(rcvr interface{}) {
 	}
 	// Install the methods
 	for i := 0; i < typ.NumMethod(); i++ {
-		method = typ.Method(i)
+		method := typ.Method(i)
 		_, h, err := handler.Factory.Create(&val, &method)
 		if err != nil {
 			continue

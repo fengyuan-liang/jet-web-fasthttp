@@ -26,13 +26,18 @@ var Factory = HandlerFactory{
 	constant.MethodDelete: defaultHandlerCreator,
 }
 
-func (factory HandlerFactory) Create(rcvr *reflect.Value, method *reflect.Method) (prefix string, h IHandler, err error) {
-	prefix, ok := prefixOf(method.Name)
+func (factory HandlerFactory) Create(rcvr *reflect.Value, method *reflect.Method) (string, IHandler, error) {
+	var (
+		prefix      string
+		ok          bool
+		creatorFunc CreatorFunc
+	)
+	prefix, ok = prefixOf(method.Name)
 	if !ok {
 		return "", nil, ErrMethodPrefix
 	}
-	if creatorFunc, ok := factory[strings.ToUpper(prefix)]; ok {
-		h, err = creatorFunc(rcvr, method)
+	if creatorFunc, ok = factory[strings.ToUpper(prefix)]; ok {
+		h, err := creatorFunc(rcvr, method)
 		if err != nil {
 			return "", nil, err
 		}

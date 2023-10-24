@@ -241,3 +241,8 @@ func IsXmlSymbol(str string) bool {
 }
 
 // -----------------------------------------------------------
+
+const (
+	Space       = " "
+	EmptyString = ""
+)

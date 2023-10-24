@@ -143,20 +143,17 @@ func (p HandlerCreator) New(rcvr *reflect.Value, method *reflect.Method) (IHandl
 	case 2:
 		firstOut, secondOut := mtype.Out(0), mtype.Out(1)
 		if firstOut.Kind() == reflect.Ptr {
-			firstOut = firstOut.Elem()
-		} else {
-			handlerCreatorLog.Debug("method", methodName, "first return value type not a pointer:", firstOut.Kind())
-			return nil, syscall.EINVAL
+			if firstOut.Implements(typeOfError) {
+				returnValueType = twoReturnValueAndFirstIsError
+			}
+		} else if firstOut == typeOfError {
+			returnValueType = twoReturnValueAndFirstIsError
 		}
 		if secondOut.Kind() == reflect.Ptr {
-			secondOut = secondOut.Elem()
-		} else {
-			handlerCreatorLog.Debug("method", methodName, "second return value type not a pointer:", secondOut.Kind())
-			return nil, syscall.EINVAL
-		}
-		if firstOut.Implements(typeOfError) {
-			returnValueType = twoReturnValueAndFirstIsError
-		} else if secondOut.Implements(typeOfError) {
+			if firstOut.Implements(typeOfError) {
+				returnValueType = twoReturnValueAndSecondIsError
+			}
+		} else if secondOut == typeOfError {
 			returnValueType = twoReturnValueAndSecondIsError
 		}
 	}
@@ -168,9 +165,3 @@ func (p HandlerCreator) New(rcvr *reflect.Value, method *reflect.Method) (IHandl
 		returnValueType,
 	}, nil
 }
-
-//// handlerGetCreator Creator for handling HTTP get requests
-//var handlerGetCreator = func(rcvr *reflect.Value, method *reflect.Method) (IHandler, error) {
-//	h := new(handler)
-//	return h, nil
-//}

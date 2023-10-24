@@ -5,14 +5,8 @@
 package router
 
 import (
-	"github.com/valyala/fasthttp"
 	"strings"
 )
-
-func notFoundHandler(ctx *fasthttp.RequestCtx) {
-	ctx.SetStatusCode(fasthttp.StatusNotFound)
-	ctx.SetBodyString("404 Not Found")
-}
 
 // if sep is [_]
 // AppleBanana => ["apple", "banana"]
