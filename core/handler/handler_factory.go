@@ -6,7 +6,7 @@ package handler
 
 import (
 	"errors"
-	"jet-web/pkg/constant"
+	"github.com/fengyuan-liang/jet-web-fasthttp/pkg/constant"
 	"reflect"
 	"strings"
 )

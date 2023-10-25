@@ -2,9 +2,9 @@ package utils
 
 import (
 	"bytes"
+	"github.com/fengyuan-liang/jet-web-fasthttp/pkg/xlog"
 	jsoniter "github.com/json-iterator/go"
 	"io"
-	"jet-web/pkg/xlog"
 	"strings"
 )
 

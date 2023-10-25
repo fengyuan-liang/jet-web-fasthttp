@@ -7,7 +7,7 @@ package errors
 import (
 	"errors"
 	"fmt"
-	"jet-web/pkg/xlog"
+	"github.com/fengyuan-liang/jet-web-fasthttp/pkg/xlog"
 	"runtime"
 	"strconv"
 	"strings"

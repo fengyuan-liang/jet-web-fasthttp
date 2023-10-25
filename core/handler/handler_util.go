@@ -5,10 +5,10 @@
 package handler
 
 import (
+	"github.com/fengyuan-liang/jet-web-fasthttp/pkg/constant"
+	"github.com/fengyuan-liang/jet-web-fasthttp/pkg/errors"
+	"github.com/fengyuan-liang/jet-web-fasthttp/pkg/utils"
 	"github.com/valyala/fasthttp"
-	"jet-web/pkg/constant"
-	"jet-web/pkg/errors"
-	"jet-web/pkg/utils"
 	"reflect"
 	"strconv"
 	"strings"
@@ -72,9 +72,12 @@ func parseValue(v reflect.Value, ctx *fasthttp.RequestCtx, cate string) (err err
 			})
 			v.Set(reflect.ValueOf(m))
 		default: // uri like ?a=1 => function(a int) => a 1
-			if peek := ctx.QueryArgs().Peek(t.Name()); peek != nil {
-				err = strconvParseValue(v, string(peek))
-			}
+			// just handle one args
+			var arg string
+			ctx.URI().QueryArgs().VisitAll(func(key, value []byte) {
+				arg = string(value)
+			})
+			err = strconvParseValue(v, arg)
 		}
 		return
 	}

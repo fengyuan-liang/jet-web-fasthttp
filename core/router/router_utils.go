@@ -5,7 +5,11 @@
 package router
 
 import (
+	"bytes"
+	"github.com/fengyuan-liang/GoKit/collection/maps"
+	"github.com/valyala/fasthttp"
 	"strings"
+	"unicode"
 )
 
 // if sep is [_]
@@ -66,4 +70,36 @@ func convertToCamelCase(path []byte) string {
 
 func convertToFirstLetterUpper(method []byte) string {
 	return strings.ToLower(string(method))
+}
+
+// ConvertToURL Convert uppercase-separated string to URL format
+// like GetV1UsageWeek => get/v1/usage/week
+func ConvertToURL(input string) string {
+	var buffer bytes.Buffer
+
+	for i, r := range input {
+		if unicode.IsUpper(r) {
+			if i > 0 {
+				buffer.WriteRune('/')
+			}
+			buffer.WriteString(strings.ToLower(string(r)))
+		} else {
+			buffer.WriteRune(unicode.ToLower(r))
+		}
+	}
+
+	return buffer.String()
+}
+
+func FirstRuneIsUp(input string) bool {
+	return len(input) > 0 && unicode.IsUpper(rune(input[0]))
+}
+
+func ParseUrl(ctx *fasthttp.RequestCtx) (queryStringMap maps.IMap[string, string]) {
+	queryStringMap = maps.NewLinkedHashMap[string, string]()
+	// Parse the query parameters
+	ctx.URI().QueryArgs().VisitAll(func(key, value []byte) {
+		queryStringMap.Put(string(key), string(value))
+	})
+	return
 }

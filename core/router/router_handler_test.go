@@ -5,7 +5,7 @@
 package router
 
 import (
-	"jet-web/pkg/xlog"
+	"github.com/fengyuan-liang/jet-web-fasthttp/pkg/xlog"
 	"testing"
 )
 

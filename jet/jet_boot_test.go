@@ -8,9 +8,9 @@ package jet
 
 import (
 	"errors"
-	"jet-web/core/context"
-	"jet-web/pkg/utils"
-	"jet-web/pkg/xlog"
+	"github.com/fengyuan-liang/jet-web-fasthttp/core/context"
+	"github.com/fengyuan-liang/jet-web-fasthttp/pkg/utils"
+	"github.com/fengyuan-liang/jet-web-fasthttp/pkg/xlog"
 	"os"
 	"testing"
 )
@@ -37,9 +37,9 @@ func (j *jetController) GetV1Usage0Week(args *context.Args) (*Person, error) {
 	}, nil
 }
 
-func (j *jetController) GetV1UsageWeek(args string) error {
+func (j *jetController) GetV1UsageWeek(args string) (map[string]string, error) {
 	bootTestLog.Info("GetV1UsageWeek", args)
-	return nil
+	return map[string]string{"args": args}, nil
 }
 
 func (j *jetController) GetV1UsageWeekk0(args *context.Args) error {

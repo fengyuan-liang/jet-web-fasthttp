@@ -5,8 +5,8 @@
 package router
 
 import (
+	"github.com/fengyuan-liang/jet-web-fasthttp/core/handler"
 	"github.com/valyala/fasthttp"
-	"jet-web/core/handler"
 )
 
 type IJetRouter interface {
@@ -27,9 +27,9 @@ func (r *JetRouter) RegisterRouter(path string, handler handler.IHandler) {
 }
 
 func (r *JetRouter) ServeHTTP(ctx *fasthttp.RequestCtx) {
-	requestURI := convertToFirstLetterUpper(ctx.Method()) + string(ctx.Request.RequestURI())
-	if h, args := r.trie.GetAndArgs(requestURI); h != nil {
-		h.ServeHTTP(ctx, args)
+	requestURI := convertToFirstLetterUpper(ctx.Method()) + string(ctx.URI().PathOriginal())
+	if h, queryPathArgs := r.trie.GetAndArgs(requestURI); h != nil {
+		h.ServeHTTP(ctx, queryPathArgs)
 	} else {
 		handler.NotFoundHandler(ctx)
 	}

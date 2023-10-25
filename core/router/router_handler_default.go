@@ -5,9 +5,9 @@
 package router
 
 import (
+	"github.com/fengyuan-liang/jet-web-fasthttp/core/handler"
+	"github.com/fengyuan-liang/jet-web-fasthttp/pkg/xlog"
 	"github.com/valyala/fasthttp"
-	"jet-web/core/handler"
-	"jet-web/pkg/xlog"
 	"reflect"
 )
 

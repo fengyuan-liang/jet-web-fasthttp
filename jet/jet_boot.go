@@ -5,9 +5,9 @@
 package jet
 
 import (
+	"github.com/fengyuan-liang/jet-web-fasthttp/core/router"
+	"github.com/fengyuan-liang/jet-web-fasthttp/pkg/xlog"
 	"github.com/valyala/fasthttp"
-	"jet-web/core/router"
-	"jet-web/pkg/xlog"
 )
 
 func Run(addr string) error {

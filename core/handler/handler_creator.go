@@ -5,8 +5,8 @@
 package handler
 
 import (
-	"jet-web/core/context"
-	"jet-web/pkg/xlog"
+	"github.com/fengyuan-liang/jet-web-fasthttp/core/context"
+	"github.com/fengyuan-liang/jet-web-fasthttp/pkg/xlog"
 	"reflect"
 	"syscall"
 )

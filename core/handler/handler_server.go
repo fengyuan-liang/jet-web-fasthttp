@@ -5,10 +5,10 @@
 package handler
 
 import (
+	"github.com/fengyuan-liang/jet-web-fasthttp/pkg/constant"
+	"github.com/fengyuan-liang/jet-web-fasthttp/pkg/utils"
+	"github.com/fengyuan-liang/jet-web-fasthttp/pkg/xlog"
 	"github.com/valyala/fasthttp"
-	"jet-web/pkg/constant"
-	"jet-web/pkg/utils"
-	"jet-web/pkg/xlog"
 	"reflect"
 )
 
@@ -46,9 +46,22 @@ func (h handler) handleGetRequest(ctx *fasthttp.RequestCtx, args []string) {
 	case oneParameterAndFirstIsCtx:
 
 	case oneParameterAndFirstNotIsCtx:
-		value := reflect.New(mtype.In(1).Elem())
+		var (
+			in         = mtype.In(1)
+			paramIsPtr bool
+		)
+		if in.Kind() == reflect.Ptr {
+			in = in.Elem()
+		} else {
+			paramIsPtr = false
+		}
+		// the value is ptr
+		value := reflect.New(in)
 		if err = parseReqDefault(ctx, value, args); err != nil {
 			return
+		}
+		if !paramIsPtr {
+			value = value.Elem()
 		}
 		methodArgs = append(methodArgs, value)
 	case twoParameterAndFirstIsCtx:

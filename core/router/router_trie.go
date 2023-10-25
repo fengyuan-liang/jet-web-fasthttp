@@ -118,7 +118,6 @@ func (t *Trie[V]) Get(path string) (v V) {
 func (t *Trie[V]) GetAndArgs(path string) (v V, args []string) {
 	t.rwLock.RLock()
 	defer t.rwLock.RUnlock()
-
 	node := t.node(path)
 	if node != nil {
 		return node.value, node.args
@@ -134,6 +133,9 @@ func (t *Trie[V]) Add(path string, v V) (overwrittenValue V) {
 
 	// if a path is a static router
 	if ok := t.regex.MatchString(path); !ok {
+		if FirstRuneIsUp(path) {
+			path = ConvertToURL(path)
+		}
 		if value, ok := t.staticRouterMap[path]; ok {
 			overwrittenValue = value
 		}
