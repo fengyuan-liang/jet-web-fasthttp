@@ -23,6 +23,10 @@ func SuccessHandler(ctx *fasthttp.RequestCtx, data string) {
 	ctx.SetBodyString(data)
 }
 
+func RestSuccessHandler(ctx *fasthttp.RequestCtx, data any) {
+	SuccessHandler(ctx, utils.ObjToJsonStr(data))
+}
+
 func FailHandler(ctx *fasthttp.RequestCtx, data any) {
 	ctx.SetStatusCode(fasthttp.StatusOK)
 	ctx.SetBodyString(utils.ObjToJsonStr(data))

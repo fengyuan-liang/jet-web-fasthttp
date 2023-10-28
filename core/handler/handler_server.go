@@ -5,6 +5,7 @@
 package handler
 
 import (
+	"github.com/fengyuan-liang/jet-web-fasthttp/core/context"
 	"github.com/fengyuan-liang/jet-web-fasthttp/pkg/constant"
 	"github.com/fengyuan-liang/jet-web-fasthttp/pkg/utils"
 	"github.com/fengyuan-liang/jet-web-fasthttp/pkg/xlog"
@@ -44,32 +45,34 @@ func (h handler) handleGetRequest(ctx *fasthttp.RequestCtx, args []string) {
 	handlerLog.Debugf("handle uri[%s]", uri)
 	switch h.parametersType {
 	case oneParameterAndFirstIsCtx:
-
+		methodArgs = append(methodArgs, reflect.ValueOf(context.NewContext(ctx)))
 	case oneParameterAndFirstNotIsCtx:
-		var (
-			in         = mtype.In(1)
-			paramIsPtr bool
-		)
-		if in.Kind() == reflect.Ptr {
-			in = in.Elem()
-		} else {
-			paramIsPtr = false
-		}
-		// the value is ptr
-		value := reflect.New(in)
-		if err = parseReqDefault(ctx, value, args); err != nil {
+		value, handleErr, done := h.handleParam(ctx, args, mtype.In(1), err)
+		if done {
+			handlerLog.Errorf("handler err", handleErr.Error())
 			return
-		}
-		if !paramIsPtr {
-			value = value.Elem()
 		}
 		methodArgs = append(methodArgs, value)
 	case twoParameterAndFirstIsCtx:
-
+		// handle param
+		value, handleErr, done := h.handleParam(ctx, args, mtype.In(2), err)
+		if done {
+			handlerLog.Errorf("handler err", handleErr.Error())
+			return
+		}
+		methodArgs = append(methodArgs, reflect.ValueOf(context.NewContext(ctx)), value)
 	case twoParameterAndSecondIsCtx:
-
+		// handle param
+		value, handleErr, done := h.handleParam(ctx, args, mtype.In(1), err)
+		if done {
+			handlerLog.Errorf("handler err", handleErr.Error())
+			return
+		}
+		methodArgs = append(methodArgs, value, reflect.ValueOf(context.NewContext(ctx)))
 	}
+
 	callValues := h.method.Func.Call(methodArgs)
+
 	switch h.returnValuesType {
 	case noReturnValue:
 		// noting to do
@@ -96,7 +99,7 @@ func (h handler) handleGetRequest(ctx *fasthttp.RequestCtx, args []string) {
 		}
 		if callValues[1].Interface() != nil {
 			data := callValues[1].Interface()
-			SuccessHandler(ctx, utils.ObjToJsonStr(data))
+			RestSuccessHandler(ctx, data)
 		} else {
 			SuccessHandler(ctx, constant.EmptyString)
 		}
@@ -114,6 +117,25 @@ func (h handler) handleGetRequest(ctx *fasthttp.RequestCtx, args []string) {
 		}
 	}
 	return
+}
+
+func (h handler) handleParam(ctx *fasthttp.RequestCtx, args []string, in reflect.Type, err error) (reflect.Value, error, bool) {
+	var (
+		paramIsPtr bool
+	)
+	if in.Kind() == reflect.Ptr {
+		in = in.Elem()
+		paramIsPtr = true
+	}
+	// the value is ptr
+	value := reflect.New(in)
+	if err = parseReqDefault(ctx, value, args); err != nil {
+		return reflect.Value{}, nil, true
+	}
+	if !paramIsPtr {
+		value = value.Elem()
+	}
+	return value, err, false
 }
 
 func setCtx(ctx *fasthttp.RequestCtx) {

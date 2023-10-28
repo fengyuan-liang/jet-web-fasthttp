@@ -2,6 +2,20 @@
 
 一款和gin不太一样的golang web服务器
 
+## [Overview](https://github.com/8treenet/freedom#overview)
+
+- 依赖注入 & 依赖倒置 & 开闭原则
+- 集成 fasthttp
+- HTTP/H2C Server & Client
+- 集成普罗米修斯
+- AOP Worker & 无侵入 Context
+- 可扩展组件 Infrastructure
+- DDD & 六边形架构
+- 领域事件 & 消息队列组件
+- CQS & 聚合根
+- CRUD & PO Generate
+- 一级缓存 & 二级缓存 & 防击穿
+
 ## usage
 
 ```go

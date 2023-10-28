@@ -38,6 +38,7 @@ func register(rcvr interface{}) {
 		method := typ.Method(i)
 		_, h, err := handler.Factory.Create(&val, &method)
 		if err != nil {
+			xlog.Errorf("handler.Factory.Create error:%v", err)
 			continue
 		}
 		DefaultJetRouter.RegisterRouter(method.Name, h)

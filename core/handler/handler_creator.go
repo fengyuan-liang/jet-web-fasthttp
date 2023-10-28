@@ -96,8 +96,8 @@ func (p HandlerCreator) New(rcvr *reflect.Value, method *reflect.Method) (IHandl
 			} else {
 				parameterType = oneParameterAndFirstNotIsCtx
 			}
-		} else if in.Kind() == reflect.Struct {
-			if in == typeOfCtx {
+		} else if in.Kind() == reflect.Struct || in.Kind() == reflect.Interface {
+			if in == typeOfCtx || in.Implements(typeOfCtx) {
 				parameterType = oneParameterAndFirstIsCtx
 			}
 		} else {
@@ -107,15 +107,9 @@ func (p HandlerCreator) New(rcvr *reflect.Value, method *reflect.Method) (IHandl
 		firstIn, secondIn := mtype.In(1), mtype.In(2)
 		if firstIn.Kind() == reflect.Ptr {
 			firstIn = firstIn.Elem()
-		} else {
-			handlerCreatorLog.Debug("method", methodName, "first arg type not a pointer:", firstIn.Kind())
-			return nil, syscall.EINVAL
 		}
 		if secondIn.Kind() == reflect.Ptr {
 			secondIn = secondIn.Elem()
-		} else {
-			handlerCreatorLog.Debug("method", methodName, "second arg type not a pointer:", secondIn.Kind())
-			return nil, syscall.EINVAL
 		}
 		if firstIn.Implements(typeOfCtx) {
 			ctxType++
