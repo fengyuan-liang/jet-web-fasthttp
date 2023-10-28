@@ -27,19 +27,19 @@ var handlerLog = xlog.NewWith("handler_log")
 
 func (h handler) ServeHTTP(ctx *fasthttp.RequestCtx, args []string) {
 	switch string(ctx.Method()) {
-	case constant.MethodGet:
-		h.handleGetRequest(ctx, args)
-	case constant.MethodPost, constant.MethodPut:
+	case constant.MethodGet, constant.MethodPost, constant.MethodPut, constant.MethodDelete:
+		h.handleRequest(ctx, args)
 	case constant.MethodHead:
 
 	}
 }
 
-func (h handler) handleGetRequest(ctx *fasthttp.RequestCtx, args []string) {
+func (h handler) handleRequest(ctx *fasthttp.RequestCtx, args []string) {
 	var (
 		uri        = ctx.URI().String()
 		mtype      = h.method.Type
 		methodArgs = []reflect.Value{*h.rcvr}
+		param      reflect.Value
 		err        error
 	)
 	handlerLog.Debugf("handle uri[%s]", uri)
@@ -47,28 +47,31 @@ func (h handler) handleGetRequest(ctx *fasthttp.RequestCtx, args []string) {
 	case oneParameterAndFirstIsCtx:
 		methodArgs = append(methodArgs, reflect.ValueOf(context.NewContext(ctx)))
 	case oneParameterAndFirstNotIsCtx:
-		value, handleErr, done := h.handleParam(ctx, args, mtype.In(1), err)
-		if done {
-			handlerLog.Errorf("handler err", handleErr.Error())
+		param, err = h.handleParam(ctx, args, mtype.In(1), err)
+		if err != nil {
+			handlerLog.Errorf("handler err: %v", err.Error())
+			FailHandler(ctx, err.Error())
 			return
 		}
-		methodArgs = append(methodArgs, value)
+		methodArgs = append(methodArgs, param)
 	case twoParameterAndFirstIsCtx:
 		// handle param
-		value, handleErr, done := h.handleParam(ctx, args, mtype.In(2), err)
-		if done {
-			handlerLog.Errorf("handler err", handleErr.Error())
+		param, err = h.handleParam(ctx, args, mtype.In(2), err)
+		if err != nil {
+			handlerLog.Errorf("handler err: %v", err.Error())
+			FailHandler(ctx, err.Error())
 			return
 		}
-		methodArgs = append(methodArgs, reflect.ValueOf(context.NewContext(ctx)), value)
+		methodArgs = append(methodArgs, reflect.ValueOf(context.NewContext(ctx)), param)
 	case twoParameterAndSecondIsCtx:
 		// handle param
-		value, handleErr, done := h.handleParam(ctx, args, mtype.In(1), err)
-		if done {
-			handlerLog.Errorf("handler err", handleErr.Error())
+		param, err = h.handleParam(ctx, args, mtype.In(1), err)
+		if err != nil {
+			handlerLog.Errorf("handler err: %v", err.Error())
+			FailHandler(ctx, err.Error())
 			return
 		}
-		methodArgs = append(methodArgs, value, reflect.ValueOf(context.NewContext(ctx)))
+		methodArgs = append(methodArgs, param, reflect.ValueOf(context.NewContext(ctx)))
 	}
 
 	callValues := h.method.Func.Call(methodArgs)
@@ -119,7 +122,7 @@ func (h handler) handleGetRequest(ctx *fasthttp.RequestCtx, args []string) {
 	return
 }
 
-func (h handler) handleParam(ctx *fasthttp.RequestCtx, args []string, in reflect.Type, err error) (reflect.Value, error, bool) {
+func (h handler) handleParam(ctx *fasthttp.RequestCtx, args []string, in reflect.Type, err error) (reflect.Value, error) {
 	var (
 		paramIsPtr bool
 	)
@@ -130,16 +133,22 @@ func (h handler) handleParam(ctx *fasthttp.RequestCtx, args []string, in reflect
 	// the value is ptr
 	value := reflect.New(in)
 	if err = parseReqDefault(ctx, value, args); err != nil {
-		return reflect.Value{}, nil, true
+		xlog.Errorf("parseReqDefault err: %v", err.Error())
+		return reflect.Value{}, nil
 	}
 	if !paramIsPtr {
 		value = value.Elem()
 	}
-	return value, err, false
+	return value, err
 }
 
 func setCtx(ctx *fasthttp.RequestCtx) {
 
+}
+
+type T struct {
+	Id   int    `json:"id"`
+	Name string `json:"name"`
 }
 
 func parseReqDefault(ctx *fasthttp.RequestCtx, param reflect.Value, args []string) (err error) {
@@ -157,7 +166,8 @@ func parseReqDefault(ctx *fasthttp.RequestCtx, param reflect.Value, args []strin
 		if ctx.Request.Header.ContentLength() == 0 {
 			return
 		}
-		return utils.Decode(ctx.Request.BodyStream(), param.Interface())
+		return utils.ByteToObj(ctx.Request.Body(), param.Interface())
+
 	} else {
 		return parseValue(param, ctx, "form")
 	}

@@ -28,12 +28,27 @@ func TestJetBoot(t *testing.T) {
 	t.Logf("err:%v", Run(":8080"))
 }
 
-func (j *jetController) GetV1UsageContext(ctx Ctx) (map[string]any, error) {
+type req struct {
+	Id   int    `json:"id"`
+	Name string `json:"name"`
+}
+
+func (j *jetController) PostV1UsageContext(ctx Ctx, req *req) (map[string]any, error) {
 	ctx.Logger().Info("GetV1UsageContext")
-	ctx.Put("request uri", ctx.Request().URI().FullURI())
+	ctx.Logger().Infof("req:%v", req)
+	ctx.Put("request uri", ctx.Request().URI().String())
 	ctx.Put("traceId", ctx.Logger().ReqId)
+	ctx.Put("req", req)
 	return ctx.Keys(), nil
 }
+
+//
+//func (j *jetController) GetV1UsageContext(ctx Ctx) (map[string]any, error) {
+//	ctx.Logger().Info("GetV1UsageContext")
+//	ctx.Put("request uri", ctx.Request().URI().FullURI())
+//	ctx.Put("traceId", ctx.Logger().ReqId)
+//	return ctx.Keys(), nil
+//}
 
 func (j *jetController) GetV1UsageContext0(ctx Ctx, args *context.Args) (map[string]any, error) {
 	ctx.Logger().Info("GetV1UsageContext")

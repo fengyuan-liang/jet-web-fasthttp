@@ -5,6 +5,7 @@
 package handler
 
 import (
+	"github.com/fengyuan-liang/jet-web-fasthttp/pkg/constant"
 	"github.com/fengyuan-liang/jet-web-fasthttp/pkg/utils"
 	"github.com/valyala/fasthttp"
 )
@@ -15,19 +16,26 @@ const (
 
 func NotFoundHandler(ctx *fasthttp.RequestCtx) {
 	ctx.SetStatusCode(fasthttp.StatusNotFound)
+	ctx.Response.Header.SetServer("JetServer")
 	ctx.SetBodyString("404 Not Found")
 }
 
 func SuccessHandler(ctx *fasthttp.RequestCtx, data string) {
 	ctx.SetStatusCode(fasthttp.StatusOK)
+	ctx.Response.Header.SetServer("JetServer")
+	ctx.Response.Header.Set("Content-Type", constant.MIMEApplicationJSON)
 	ctx.SetBodyString(data)
 }
 
 func RestSuccessHandler(ctx *fasthttp.RequestCtx, data any) {
-	SuccessHandler(ctx, utils.ObjToJsonStr(data))
+	ctx.SetStatusCode(fasthttp.StatusOK)
+	ctx.Response.Header.SetServer("JetServer")
+	ctx.SetContentType(constant.MIMEApplicationJSON)
+	ctx.SetBodyString(utils.ObjToJsonStr(data))
 }
 
-func FailHandler(ctx *fasthttp.RequestCtx, data any) {
-	ctx.SetStatusCode(fasthttp.StatusOK)
-	ctx.SetBodyString(utils.ObjToJsonStr(data))
+func FailHandler(ctx *fasthttp.RequestCtx, data string) {
+	ctx.SetStatusCode(fasthttp.StatusInternalServerError)
+	ctx.Response.Header.SetServer("JetServer")
+	ctx.SetBodyString(data)
 }
