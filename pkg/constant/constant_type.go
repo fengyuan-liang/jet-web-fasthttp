@@ -4,6 +4,8 @@
 
 package constant
 
+import "github.com/fengyuan-liang/jet-web-fasthttp/pkg/utils"
+
 const (
 	UPPER     = 0x01       /* upper case letter[A-Z] */
 	LOWER     = 0x02       /* lower case letter[a-z] */
@@ -246,3 +248,5 @@ const (
 	Space       = " "
 	EmptyString = ""
 )
+
+var EmptyStringByte, _ = utils.ObjToByte(EmptyString)

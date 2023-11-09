@@ -5,7 +5,9 @@
 package handler
 
 import (
+	"fmt"
 	"github.com/fengyuan-liang/jet-web-fasthttp/core/context"
+	"github.com/fengyuan-liang/jet-web-fasthttp/core/hook"
 	"github.com/fengyuan-liang/jet-web-fasthttp/pkg/constant"
 	"github.com/fengyuan-liang/jet-web-fasthttp/pkg/utils"
 	"github.com/fengyuan-liang/jet-web-fasthttp/pkg/xlog"
@@ -13,14 +15,13 @@ import (
 	"reflect"
 )
 
-type HandlerFunc = func(ctx *fasthttp.RequestCtx) error
-
 type handler struct {
 	rcvr             *reflect.Value
 	method           *reflect.Method
 	ctxType          contextType
 	parametersType   parametersType
 	returnValuesType returnValuesType
+	hook             *hook.Hook
 }
 
 var handlerLog = xlog.NewWith("handler_log")
@@ -32,6 +33,11 @@ func (h handler) ServeHTTP(ctx *fasthttp.RequestCtx, args []string) {
 	case constant.MethodHead:
 
 	}
+}
+
+func (h handler) AddHook(hooks *hook.Hook) {
+	h.hook.PostParamsParseHooks = append(h.hook.PostParamsParseHooks, hooks.PostParamsParseHooks...)
+	h.hook.PostMethodExecuteHooks = append(h.hook.PostMethodExecuteHooks, hooks.PostMethodExecuteHooks...)
 }
 
 func (h handler) handleRequest(ctx *fasthttp.RequestCtx, args []string) {
@@ -53,6 +59,11 @@ func (h handler) handleRequest(ctx *fasthttp.RequestCtx, args []string) {
 			FailHandler(ctx, err.Error())
 			return
 		}
+		// handle postParamsParseHook
+		if err = h.hook.PostParamsParse(param); err != nil {
+			FailHandler(ctx, err.Error())
+			return
+		}
 		methodArgs = append(methodArgs, param)
 	case twoParameterAndFirstIsCtx:
 		// handle param
@@ -62,12 +73,22 @@ func (h handler) handleRequest(ctx *fasthttp.RequestCtx, args []string) {
 			FailHandler(ctx, err.Error())
 			return
 		}
+		// handle postParamsParseHook
+		if err = h.hook.PostParamsParse(param); err != nil {
+			FailHandler(ctx, err.Error())
+			return
+		}
 		methodArgs = append(methodArgs, reflect.ValueOf(context.NewContext(ctx)), param)
 	case twoParameterAndSecondIsCtx:
 		// handle param
 		param, err = h.handleParam(ctx, args, mtype.In(1), err)
 		if err != nil {
 			handlerLog.Errorf("handler err: %v", err.Error())
+			FailHandler(ctx, err.Error())
+			return
+		}
+		// handle postParamsParseHook
+		if err = h.hook.PostParamsParse(param); err != nil {
 			FailHandler(ctx, err.Error())
 			return
 		}
@@ -90,7 +111,7 @@ func (h handler) handleRequest(ctx *fasthttp.RequestCtx, args []string) {
 	case OneReturnValueAndNotError:
 		if callValues[0].Interface() != nil {
 			data := callValues[0].Interface()
-			SuccessHandler(ctx, utils.ObjToJsonStr(data))
+			SuccessHandler(ctx, fmt.Sprintf("%v", data))
 		} else {
 			SuccessHandler(ctx, constant.EmptyString)
 		}
@@ -113,8 +134,15 @@ func (h handler) handleRequest(ctx *fasthttp.RequestCtx, args []string) {
 			return
 		}
 		if callValues[0].Interface() != nil {
-			data := callValues[0].Interface()
-			SuccessHandler(ctx, utils.ObjToJsonStr(data))
+			// handle postParamsParseHook
+			postData := callValues[0].Interface()
+			if h.hook.HasMethodExecuteHook() {
+				if postData, err = h.hook.PostMethodExecuteHook(callValues[0]); err != nil {
+					FailHandler(ctx, err.Error())
+					return
+				}
+			}
+			SuccessHandler(ctx, fmt.Sprintf("%v", postData))
 		} else {
 			SuccessHandler(ctx, constant.EmptyString)
 		}
@@ -140,15 +168,6 @@ func (h handler) handleParam(ctx *fasthttp.RequestCtx, args []string, in reflect
 		value = value.Elem()
 	}
 	return value, err
-}
-
-func setCtx(ctx *fasthttp.RequestCtx) {
-
-}
-
-type T struct {
-	Id   int    `json:"id"`
-	Name string `json:"name"`
 }
 
 func parseReqDefault(ctx *fasthttp.RequestCtx, param reflect.Value, args []string) (err error) {

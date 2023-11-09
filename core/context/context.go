@@ -8,6 +8,7 @@ import (
 	"github.com/fengyuan-liang/GoKit/collection/maps"
 	"github.com/fengyuan-liang/jet-web-fasthttp/pkg/xlog"
 	"github.com/valyala/fasthttp"
+	"mime/multipart"
 	"os"
 )
 
@@ -21,6 +22,7 @@ type Ctx interface {
 	Logger() *xlog.Logger
 	Request() *fasthttp.Request
 	Response() *fasthttp.Response
+	FormFile(key string) (*multipart.FileHeader, error)
 	Get(key string) (value any, exists bool)
 	MustGet(key string) (value any)
 	Put(key string, value any)
@@ -82,4 +84,27 @@ func (c *Context) Put(key string, value any) {
 		c.keys = maps.NewLinkedHashMap[string, any]()
 	}
 	c.keys.Put(key, value)
+}
+
+// FormFile returns uploaded file associated with the given multipart form key.
+//
+// The file is automatically deleted after returning from RequestHandler,
+// so either move or copy uploaded file into new place if you want retaining it.
+//
+// Use SaveMultipartFile function for permanently saving uploaded file.
+//
+// The returned file header is valid until your request handler returns.
+func (c *Context) FormFile(key string) (*multipart.FileHeader, error) {
+	mf, err := c.req.MultipartForm()
+	if err != nil {
+		return nil, err
+	}
+	if mf.File == nil {
+		return nil, err
+	}
+	fhh := mf.File[key]
+	if fhh == nil {
+		return nil, fasthttp.ErrMissingFile
+	}
+	return fhh[0], nil
 }

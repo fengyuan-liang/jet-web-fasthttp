@@ -2,6 +2,7 @@ package utils
 
 import (
 	"bytes"
+	"encoding/gob"
 	"github.com/fengyuan-liang/jet-web-fasthttp/pkg/xlog"
 	jsoniter "github.com/json-iterator/go"
 	"io"
@@ -25,6 +26,17 @@ func Marshal(in interface{}) (str string, err error) {
 func ObjToByte(in interface{}) (buf []byte, err error) {
 	buf, err = json.Marshal(in)
 	return
+}
+
+// MustObjToByte not json
+func MustObjToByte(in interface{}) []byte {
+	var buf bytes.Buffer
+	enc := gob.NewEncoder(&buf)
+	if err := enc.Encode(in); err != nil {
+		xlog.Errorf("MustObjToByte failed, err:%v", err.Error())
+		return nil
+	}
+	return buf.Bytes()
 }
 
 func ByteToObj(buf []byte, out interface{}) (err error) {

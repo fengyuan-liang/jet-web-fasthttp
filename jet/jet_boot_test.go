@@ -29,8 +29,8 @@ func TestJetBoot(t *testing.T) {
 }
 
 type req struct {
-	Id   int    `json:"id"`
-	Name string `json:"name"`
+	Id   int    `json:"id" validate:"required" reg_err_info:"is empty"`
+	Name string `json:"name" validate:"required" reg_err_info:"is empty"`
 }
 
 func (j *jetController) PostV1UsageContext(ctx Ctx, req *req) (map[string]any, error) {
@@ -42,20 +42,24 @@ func (j *jetController) PostV1UsageContext(ctx Ctx, req *req) (map[string]any, e
 	return ctx.Keys(), nil
 }
 
-//
-//func (j *jetController) GetV1UsageContext(ctx Ctx) (map[string]any, error) {
-//	ctx.Logger().Info("GetV1UsageContext")
-//	ctx.Put("request uri", ctx.Request().URI().FullURI())
-//	ctx.Put("traceId", ctx.Logger().ReqId)
-//	return ctx.Keys(), nil
-//}
+func (j *jetController) PostParamsParseHook(param any) error {
+	if err := utils.Struct(param); err != nil {
+		return errors.New(utils.ProcessErr(param, err))
+	}
+	return nil
+}
+
+func (j *jetController) PostMethodExecuteHook(param any) (data any, err error) {
+	// restful
+	return utils.ObjToJsonStr(param), nil
+}
 
 func (j *jetController) GetV1UsageContext0(ctx Ctx, args *context.Args) (map[string]any, error) {
 	ctx.Logger().Info("GetV1UsageContext")
-	ctx.Put("request uri", ctx.Request().URI().FullURI())
+	ctx.Put("request uri", ctx.Request().URI().String())
 	ctx.Put("traceId", ctx.Logger().ReqId)
 	ctx.Put("args", args)
-	return ctx.Keys(), nil
+	return map[string]any{"code": 200, "data": ctx.Keys(), "msg": "ok"}, nil
 }
 
 func (j *jetController) GetV1UsageWeek0(args *context.Args) error {

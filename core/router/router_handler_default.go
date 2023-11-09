@@ -6,6 +6,7 @@ package router
 
 import (
 	"github.com/fengyuan-liang/jet-web-fasthttp/core/handler"
+	"github.com/fengyuan-liang/jet-web-fasthttp/core/hook"
 	"github.com/fengyuan-liang/jet-web-fasthttp/pkg/xlog"
 	"github.com/valyala/fasthttp"
 	"reflect"
@@ -33,6 +34,8 @@ func register(rcvr interface{}) {
 		typ = reflect.PtrTo(typ)
 		val = reflect.ValueOf(typ)
 	}
+	// global hook
+	hooks := hook.GenHook(&val)
 	// Install the methods
 	for i := 0; i < typ.NumMethod(); i++ {
 		method := typ.Method(i)
@@ -41,6 +44,7 @@ func register(rcvr interface{}) {
 			xlog.Errorf("handler.Factory.Create error:%v", err)
 			continue
 		}
+		h.AddHook(hooks)
 		DefaultJetRouter.RegisterRouter(method.Name, h)
 		xlog.Debug("Install", "=>", method.Name)
 	}

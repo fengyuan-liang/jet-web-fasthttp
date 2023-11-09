@@ -6,6 +6,7 @@ package handler
 
 import (
 	"github.com/fengyuan-liang/jet-web-fasthttp/core/context"
+	"github.com/fengyuan-liang/jet-web-fasthttp/core/hook"
 	"github.com/fengyuan-liang/jet-web-fasthttp/pkg/xlog"
 	"reflect"
 	"syscall"
@@ -152,10 +153,11 @@ func (p HandlerCreator) New(rcvr *reflect.Value, method *reflect.Method) (IHandl
 		}
 	}
 	return &handler{
-		rcvr,
-		method,
-		ctxType,
-		parameterType,
-		returnValueType,
+		rcvr:             rcvr,
+		method:           method,
+		ctxType:          ctxType,
+		parametersType:   parameterType,
+		returnValuesType: returnValueType,
+		hook:             new(hook.Hook),
 	}, nil
 }

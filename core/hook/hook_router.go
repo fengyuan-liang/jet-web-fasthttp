@@ -4,6 +4,21 @@
 
 package hook
 
-type preRouteSetupHook interface {
+type PreRouteSetupHook interface {
 	PreRouteSetup()
+}
+
+// PostParamsParseHook Hook triggered after parameter parsing is complete
+type PostParamsParseHook interface {
+	PostParamsParseHook(param any) error
+}
+
+// PostRouteMountHook Hook triggered after route is mounted
+type PostRouteMountHook interface {
+	PostRouteMount()
+}
+
+// PostMethodExecuteHook Hook triggered after method execution but before returning
+type PostMethodExecuteHook interface {
+	PostMethodExecuteHook(param any) (data any, err error)
 }
