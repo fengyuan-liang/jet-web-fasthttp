@@ -13,6 +13,7 @@ import (
 	"github.com/fengyuan-liang/jet-web-fasthttp/pkg/xlog"
 	"github.com/valyala/fasthttp"
 	"reflect"
+	"time"
 )
 
 type handler struct {
@@ -27,6 +28,7 @@ type handler struct {
 var handlerLog = xlog.NewWith("handler_log")
 
 func (h handler) ServeHTTP(ctx *fasthttp.RequestCtx, args []string) {
+	defer utils.TraceElapsed(time.Now())
 	switch string(ctx.Method()) {
 	case constant.MethodGet, constant.MethodPost, constant.MethodPut, constant.MethodDelete:
 		h.handleRequest(ctx, args)

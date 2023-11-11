@@ -65,6 +65,7 @@ type Logger struct {
 	buf        bytes.Buffer // for accumulating text to write
 	levelStats [6]int64
 	ReqId      string
+	CalldPath  int // runtime CalldPath
 }
 
 // New creates a new Logger.   The out variable sets the
@@ -72,7 +73,7 @@ type Logger struct {
 // The prefix appears at the beginning of each generated log line.
 // The flag argument defines the logging properties.
 func New(out io.Writer, prefix string, flag int, reqId string) *Logger {
-	return &Logger{out: out, prefix: prefix, Level: 1, flag: flag, ReqId: reqId}
+	return &Logger{out: out, prefix: prefix, Level: 1, flag: flag, ReqId: reqId, CalldPath: 2}
 }
 
 var Std = New(os.Stderr, "", Ldefault, "")
@@ -140,6 +141,10 @@ func shortFile(file string, flag int) string {
 		return file[pos+len(sep):]
 	}
 	return file
+}
+
+func (l *Logger) SetCalldPath(calldPath int) {
+	l.CalldPath = calldPath
 }
 
 func (l *Logger) formatHeader(buf *bytes.Buffer, t time.Time, file string, line int, lvl int, reqId string) {
@@ -235,16 +240,16 @@ func (l *Logger) Output(reqId string, lvl int, calldepth int, s string) error {
 // Printf calls _ = l.Output to print to the logger.
 // Arguments are handled in the manner of fmt.Printf.
 func (l *Logger) Printf(format string, v ...interface{}) {
-	_ = l.Output("", Linfo, 2, fmt.Sprintf(format, v...))
+	_ = l.Output("", Linfo, l.CalldPath, fmt.Sprintf(format, v...))
 }
 
 // Print calls _ = l.Output to print to the logger.
 // Arguments are handled in the manner of fmt.Print.
-func (l *Logger) Print(v ...interface{}) { _ = l.Output("", Linfo, 2, fmt.Sprint(v...)) }
+func (l *Logger) Print(v ...interface{}) { _ = l.Output("", Linfo, l.CalldPath, fmt.Sprint(v...)) }
 
 // Println calls _ = l.Output to print to the logger.
 // Arguments are handled in the manner of fmt.Println.
-func (l *Logger) Println(v ...interface{}) { _ = l.Output("", Linfo, 2, fmt.Sprintln(v...)) }
+func (l *Logger) Println(v ...interface{}) { _ = l.Output("", Linfo, l.CalldPath, fmt.Sprintln(v...)) }
 
 // -----------------------------------------
 
@@ -252,14 +257,14 @@ func (l *Logger) Debugf(format string, v ...interface{}) {
 	if Ldebug < l.Level {
 		return
 	}
-	_ = l.Output(l.ReqId, Ldebug, 2, fmt.Sprintf(format, v...))
+	_ = l.Output(l.ReqId, Ldebug, l.CalldPath, fmt.Sprintf(format, v...))
 }
 
 func (l *Logger) Debug(v ...interface{}) {
 	if Ldebug < l.Level {
 		return
 	}
-	_ = l.Output(l.ReqId, Ldebug, 2, fmt.Sprintln(v...))
+	_ = l.Output(l.ReqId, Ldebug, l.CalldPath, fmt.Sprintln(v...))
 }
 
 // -----------------------------------------
@@ -268,48 +273,48 @@ func (l *Logger) Infof(format string, v ...interface{}) {
 	if Linfo < l.Level {
 		return
 	}
-	_ = l.Output(l.ReqId, Linfo, 2, fmt.Sprintf(format, v...))
+	_ = l.Output(l.ReqId, Linfo, l.CalldPath, fmt.Sprintf(format, v...))
 }
 
 func (l *Logger) Info(v ...interface{}) {
 	if Linfo < l.Level {
 		return
 	}
-	_ = l.Output(l.ReqId, Linfo, 2, fmt.Sprintln(v...))
+	_ = l.Output(l.ReqId, Linfo, l.CalldPath, fmt.Sprintln(v...))
 }
 
 // -----------------------------------------
 
 func (l *Logger) Warnf(format string, v ...interface{}) {
-	_ = l.Output(l.ReqId, Lwarn, 2, fmt.Sprintf(format, v...))
+	_ = l.Output(l.ReqId, Lwarn, l.CalldPath, fmt.Sprintf(format, v...))
 }
 
-func (l *Logger) Warn(v ...interface{}) { _ = l.Output("", Lwarn, 2, fmt.Sprintln(v...)) }
+func (l *Logger) Warn(v ...interface{}) { _ = l.Output("", Lwarn, l.CalldPath, fmt.Sprintln(v...)) }
 
 // -----------------------------------------
 
 func (l *Logger) Errorf(format string, v ...interface{}) {
-	_ = l.Output(l.ReqId, Lerror, 2, fmt.Sprintf(format, v...))
+	_ = l.Output(l.ReqId, Lerror, l.CalldPath, fmt.Sprintf(format, v...))
 }
 
-func (l *Logger) Error(v ...interface{}) { _ = l.Output("", Lerror, 2, fmt.Sprintln(v...)) }
+func (l *Logger) Error(v ...interface{}) { _ = l.Output("", Lerror, l.CalldPath, fmt.Sprintln(v...)) }
 
 // -----------------------------------------
 
 func (l *Logger) Fatal(v ...interface{}) {
-	_ = l.Output(l.ReqId, Lfatal, 2, fmt.Sprint(v...))
+	_ = l.Output(l.ReqId, Lfatal, l.CalldPath, fmt.Sprint(v...))
 	os.Exit(1)
 }
 
 // Fatalf is equivalent to l.Printf() followed by a call to os.Exit(1).
 func (l *Logger) Fatalf(format string, v ...interface{}) {
-	_ = l.Output("", Lfatal, 2, fmt.Sprintf(format, v...))
+	_ = l.Output("", Lfatal, l.CalldPath, fmt.Sprintf(format, v...))
 	os.Exit(1)
 }
 
 // Fatalln is equivalent to l.Println() followed by a call to os.Exit(1).
 func (l *Logger) Fatalln(v ...interface{}) {
-	_ = l.Output("", Lfatal, 2, fmt.Sprintln(v...))
+	_ = l.Output("", Lfatal, l.CalldPath, fmt.Sprintln(v...))
 	os.Exit(1)
 }
 

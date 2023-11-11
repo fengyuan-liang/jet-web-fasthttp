@@ -73,7 +73,7 @@ type Person struct {
 }
 
 func (j *jetController) GetV1Usage0Week(args *context.Args) (*Person, error) {
-	bootTestLog.Infof("GetV1Usage0Week %v", *args)
+	//bootTestLog.Infof("GetV1Usage0Week %v", *args)
 	return &Person{
 		Name: "张三",
 		Age:  18,
