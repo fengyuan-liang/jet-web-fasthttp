@@ -40,6 +40,7 @@ func (h handler) ServeHTTP(ctx *fasthttp.RequestCtx, args []string) {
 func (h handler) AddHook(hooks *hook.Hook) {
 	h.hook.PostParamsParseHooks = append(h.hook.PostParamsParseHooks, hooks.PostParamsParseHooks...)
 	h.hook.PostMethodExecuteHooks = append(h.hook.PostMethodExecuteHooks, hooks.PostMethodExecuteHooks...)
+	h.hook.PreMethodExecuteHooks = append(h.hook.PreMethodExecuteHooks, hooks.PreMethodExecuteHooks...)
 }
 
 func (h handler) handleRequest(ctx *fasthttp.RequestCtx, args []string) {
@@ -49,11 +50,21 @@ func (h handler) handleRequest(ctx *fasthttp.RequestCtx, args []string) {
 		methodArgs = []reflect.Value{*h.rcvr}
 		param      reflect.Value
 		err        error
+		jetCtx     = reflect.ValueOf(context.NewContext(ctx))
 	)
 	handlerLog.Debugf("handle uri[%s]", uri)
+
+	// handle PreMethodExecuteHook
+	if h.hook.HasPreMethodExecuteHooks() {
+		if err = h.hook.PreMethodExecuteHook(jetCtx); err != nil {
+			FailHandler(ctx, err.Error())
+			return
+		}
+	}
+
 	switch h.parametersType {
 	case oneParameterAndFirstIsCtx:
-		methodArgs = append(methodArgs, reflect.ValueOf(context.NewContext(ctx)))
+		methodArgs = append(methodArgs, jetCtx)
 	case oneParameterAndFirstNotIsCtx:
 		param, err = h.handleParam(ctx, args, mtype.In(1), err)
 		if err != nil {
@@ -80,7 +91,7 @@ func (h handler) handleRequest(ctx *fasthttp.RequestCtx, args []string) {
 			FailHandler(ctx, err.Error())
 			return
 		}
-		methodArgs = append(methodArgs, reflect.ValueOf(context.NewContext(ctx)), param)
+		methodArgs = append(methodArgs, jetCtx, param)
 	case twoParameterAndSecondIsCtx:
 		// handle param
 		param, err = h.handleParam(ctx, args, mtype.In(1), err)
@@ -94,7 +105,7 @@ func (h handler) handleRequest(ctx *fasthttp.RequestCtx, args []string) {
 			FailHandler(ctx, err.Error())
 			return
 		}
-		methodArgs = append(methodArgs, param, reflect.ValueOf(context.NewContext(ctx)))
+		methodArgs = append(methodArgs, param, jetCtx)
 	}
 
 	callValues := h.method.Func.Call(methodArgs)

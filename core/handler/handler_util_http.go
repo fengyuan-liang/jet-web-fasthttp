@@ -35,7 +35,6 @@ func RestSuccessHandler(ctx *fasthttp.RequestCtx, data any) {
 }
 
 func FailHandler(ctx *fasthttp.RequestCtx, data string) {
-	ctx.SetStatusCode(fasthttp.StatusInternalServerError)
 	ctx.Response.Header.SetServer("JetServer")
 	ctx.SetBodyString(data)
 }

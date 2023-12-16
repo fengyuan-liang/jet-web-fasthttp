@@ -1,8 +1,6 @@
-// Copyright 2023 QINIU. All rights reserved
-// @Description:
-// @Version: 1.0.0
-// @Date: 2023/11/09 16:01
-// @Author: liangfengyuan@qiniu.com
+// Copyright The Jet authors. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
 
 package hook
 
@@ -15,8 +13,10 @@ import (
 type Hook struct {
 	PostParamsParseHooks   []*reflect.Value
 	PostMethodExecuteHooks []*reflect.Value
+	PreMethodExecuteHooks  []*reflect.Value
 }
 
+// GenHook see handle#AddHook
 func GenHook(rcvr *reflect.Value) *Hook {
 	defer utils.TraceElapsed(time.Now())
 	hook := new(Hook)
@@ -26,6 +26,10 @@ func GenHook(rcvr *reflect.Value) *Hook {
 
 	if methodByName := rcvr.MethodByName("PostMethodExecuteHook"); methodByName.IsValid() {
 		hook.PostMethodExecuteHooks = append(hook.PostMethodExecuteHooks, &methodByName)
+	}
+
+	if methodByName := rcvr.MethodByName("PreMethodExecuteHook"); methodByName.IsValid() {
+		hook.PreMethodExecuteHooks = append(hook.PreMethodExecuteHooks, &methodByName)
 	}
 	return hook
 }
@@ -60,6 +64,23 @@ func (hook *Hook) PostMethodExecuteHook(param reflect.Value) (data any, err erro
 		// handle data
 		if !result[0].IsNil() {
 			data = result[0].Interface()
+		}
+	}
+	return
+}
+
+func (hook *Hook) HasPreMethodExecuteHooks() bool {
+	return len(hook.PostMethodExecuteHooks) != 0
+}
+
+func (hook *Hook) PreMethodExecuteHook(ctx reflect.Value) (err error) {
+	for _, h := range hook.PreMethodExecuteHooks {
+		// call
+		result := h.Call([]reflect.Value{ctx})
+		// handle error
+		if !result[0].IsNil() {
+			err = result[0].Interface().(error)
+			return
 		}
 	}
 	return

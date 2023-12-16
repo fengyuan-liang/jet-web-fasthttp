@@ -30,6 +30,33 @@ func TestJetBoot(t *testing.T) {
 	t.Logf("err:%v", jet.Run(":8080"))
 }
 
+// ----------------------------------------------------------------------
+
+func (j *jetController) PostParamsParseHook(param any) error {
+	if err := utils.Struct(param); err != nil {
+		return errors.New(utils.ProcessErr(param, err))
+	}
+	return nil
+}
+
+func (j *jetController) PostMethodExecuteHook(param any) (data any, err error) {
+	// restful
+	return utils.ObjToJsonStr(param), nil
+}
+
+// curl http://localhost:8080/v1/usage/111/week  =>  {"code":401,"data":{},"msg":"bad token"}
+// if add -H "Authorization: <your_token_here>"  =>  {"code":200,"data":{},"msg":"msg"}
+func (j *jetController) PreMethodExecuteHook(ctx context.Ctx) (err error) {
+	if authorizationHeader := string(ctx.Request().Header.Peek("Authorization")); authorizationHeader == "" {
+		ctx.Response().SetStatusCode(401)
+		errInfo := map[string]any{"code": 401, "data": ctx.Keys(), "msg": "bad token"}
+		err = errors.New(utils.ObjToJsonStr(errInfo))
+	}
+	return
+}
+
+// ----------------------------------------------------------------------
+
 // 我们会尽可能的找到您需要的参数并将参数注入到您的结构体参数中
 type req struct {
 	Id   int    `json:"id" validate:"required" reg_err_info:"cannot empty"`
@@ -129,8 +156,12 @@ $ curl http://localhost/v1/usage/1/week
 
 #### 1.1 参数相关
 
-- [x] 支持通过挂载hook对参数进行预解析、自定义参数校验规则
-- [ ] 添加hook注入自定义的`context`，便于进行鉴权以及链路追踪等操作
+- [x] 支持通过挂载hook对参数进行预解析、自定义参数校验规则（目前支持hook有）
+  - PostParamsParseHook
+  - PostRouteMountHook
+  - PostMethodExecuteHook
+  - PreMethodExecuteHooks
+- [x] 添加hook注入自定义的`context`，便于进行鉴权以及链路追踪等操作
 
 ### 2. 🤡Aspect（切面）支持
 

@@ -10,6 +10,7 @@ import (
 	"github.com/fengyuan-liang/jet-web-fasthttp/pkg/xlog"
 	"github.com/valyala/fasthttp"
 	"reflect"
+	"strings"
 )
 
 var DefaultJetRouter = NewJetRouter("0")
@@ -39,6 +40,9 @@ func register(rcvr interface{}) {
 	// Install the methods
 	for i := 0; i < typ.NumMethod(); i++ {
 		method := typ.Method(i)
+		if strings.Contains(method.Name, "Hook") {
+			continue
+		}
 		_, h, err := handler.Factory.Create(&val, &method)
 		if err != nil {
 			xlog.Errorf("handler.Factory.Create error:%v", err)

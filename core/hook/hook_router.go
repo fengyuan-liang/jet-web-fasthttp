@@ -4,6 +4,10 @@
 
 package hook
 
+import (
+	"github.com/fengyuan-liang/jet-web-fasthttp/core/context"
+)
+
 type PreRouteSetupHook interface {
 	PreRouteSetup()
 }
@@ -21,4 +25,9 @@ type PostRouteMountHook interface {
 // PostMethodExecuteHook Hook triggered after method execution but before returning
 type PostMethodExecuteHook interface {
 	PostMethodExecuteHook(param any) (data any, err error)
+}
+
+// PreMethodExecuteHooks Hook triggered before method execution but before returning
+type PreMethodExecuteHooks interface {
+	PreMethodExecuteHook(ctx context.Ctx) (err error)
 }

@@ -28,6 +28,33 @@ func TestJetBoot(t *testing.T) {
 	t.Logf("err:%v", Run(":8080"))
 }
 
+// ----------------------------------------------------------------------
+
+func (j *jetController) PostParamsParseHook(param any) error {
+	if err := utils.Struct(param); err != nil {
+		return errors.New(utils.ProcessErr(param, err))
+	}
+	return nil
+}
+
+func (j *jetController) PostMethodExecuteHook(param any) (data any, err error) {
+	// restful
+	return utils.ObjToJsonStr(param), nil
+}
+
+// curl http://localhost:8080/v1/usage/111/week  =>  {"code":401,"data":{},"msg":"bad token"}
+// if add -H "Authorization: <your_token_here>"  =>  {"code":200,"data":{},"msg":"msg"}
+func (j *jetController) PreMethodExecuteHook(ctx context.Ctx) (err error) {
+	if authorizationHeader := string(ctx.Request().Header.Peek("Authorization")); authorizationHeader == "" {
+		ctx.Response().SetStatusCode(401)
+		errInfo := map[string]any{"code": 401, "data": ctx.Keys(), "msg": "bad token"}
+		err = errors.New(utils.ObjToJsonStr(errInfo))
+	}
+	return
+}
+
+// ----------------------------------------------------------------------
+
 type req struct {
 	Id   int    `json:"id" validate:"required" reg_err_info:"is empty"`
 	Name string `json:"name" validate:"required" reg_err_info:"is empty"`
@@ -40,18 +67,6 @@ func (j *jetController) PostV1UsageContext(ctx Ctx, req *req) (map[string]any, e
 	ctx.Put("traceId", ctx.Logger().ReqId)
 	ctx.Put("req", req)
 	return ctx.Keys(), nil
-}
-
-func (j *jetController) PostParamsParseHook(param any) error {
-	if err := utils.Struct(param); err != nil {
-		return errors.New(utils.ProcessErr(param, err))
-	}
-	return nil
-}
-
-func (j *jetController) PostMethodExecuteHook(param any) (data any, err error) {
-	// restful
-	return utils.ObjToJsonStr(param), nil
 }
 
 func (j *jetController) GetV1UsageContext0(ctx Ctx, args *context.Args) (map[string]any, error) {

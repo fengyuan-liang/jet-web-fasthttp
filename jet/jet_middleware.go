@@ -1,8 +1,6 @@
-// Copyright 2023 QINIU. All rights reserved
-// @Description:
-// @Version: 1.0.0
-// @Date: 2023/11/09 15:39
-// @Author: liangfengyuan@qiniu.com
+// Copyright The Jet authors. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
 
 package jet
 
