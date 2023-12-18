@@ -12,6 +12,7 @@ import (
 var traceElapsed = func() *xlog.Logger {
 	logger := xlog.NewWith("traceElapsed")
 	logger.SetCalldPath(3)
+	logger.SetFlags(xlog.LstdFlags | xlog.Llevel)
 	return logger
 }()
 
@@ -20,5 +21,5 @@ func TraceElapsed(start time.Time) {
 }
 
 func TraceElapsedByName(start time.Time, traceName string) {
-	traceElapsed.Infof("trace [%v] elapsed [%v]", traceName, time.Since(start))
+	traceElapsed.Infof(" trace[%v] elapsed[%v]", traceName, time.Since(start))
 }

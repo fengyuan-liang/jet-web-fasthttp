@@ -175,3 +175,10 @@ $ curl http://localhost/v1/usage/1/week
 
 ### 4. 依赖注入支持
 
+### 5.其他更新
+
+**2023/12/18**
+
+请求计时
+
+![image-20231218173140763](https://cdn.fengxianhub.top/resources-master/image-20231218173140763.png)
