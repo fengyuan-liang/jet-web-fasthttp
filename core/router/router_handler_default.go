@@ -7,6 +7,8 @@ package router
 import (
 	"github.com/fengyuan-liang/jet-web-fasthttp/core/handler"
 	"github.com/fengyuan-liang/jet-web-fasthttp/core/hook"
+	"github.com/fengyuan-liang/jet-web-fasthttp/core/inject"
+	"github.com/fengyuan-liang/jet-web-fasthttp/core/middleware"
 	"github.com/fengyuan-liang/jet-web-fasthttp/pkg/xlog"
 	"github.com/valyala/fasthttp"
 	"reflect"
@@ -16,13 +18,28 @@ import (
 var DefaultJetRouter = NewJetRouter("0")
 
 func ServeHTTP(ctx *fasthttp.RequestCtx) {
+	for _, handlerFunc := range middleware.JetMiddlewareList {
+		if err := handlerFunc.ServeHTTP(ctx); err != nil {
+			return
+		}
+	}
 	DefaultJetRouter.ServeHTTP(ctx)
 }
 
 func Register(rcvrs ...interface{}) {
+	// provide by cmd
 	for _, rcvr := range rcvrs {
 		register(rcvr)
 	}
+}
+
+func RegisterByInject() {
+	// provide by inject
+	inject.Invoke(func(controllerList inject.JetControllerList) {
+		for _, controller := range controllerList.Handlers {
+			register(controller)
+		}
+	})
 }
 
 func register(rcvr interface{}) {

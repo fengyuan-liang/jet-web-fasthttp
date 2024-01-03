@@ -9,13 +9,22 @@ package jet
 import (
 	"errors"
 	"github.com/fengyuan-liang/jet-web-fasthttp/core/context"
+	"github.com/fengyuan-liang/jet-web-fasthttp/core/inject"
+	"github.com/fengyuan-liang/jet-web-fasthttp/core/middleware"
 	"github.com/fengyuan-liang/jet-web-fasthttp/pkg/utils"
 	"github.com/fengyuan-liang/jet-web-fasthttp/pkg/xlog"
 	"os"
 	"testing"
+	"time"
 )
 
-type jetController struct{}
+type jetController struct {
+	inject.IJetController
+}
+
+func NewDemoController() ControllerResult {
+	return NewJetController(&jetController{})
+}
 
 var bootTestLog = xlog.NewWith("boot_test_log")
 
@@ -24,11 +33,13 @@ func TestJetBoot(t *testing.T) {
 		t.Skip("Skipping JetBoot test")
 	}
 	xlog.SetOutputLevel(xlog.Ldebug)
-	Register(&jetController{})
-	t.Logf("err:%v", Run(":8080"))
+	//Register(&jetController{})
+	middleware.AddJetMiddleware(middleware.TraceJetMiddleware)
+	Provide(NewDemoController)
+	Run(":8080")
 }
 
-// ----------------------------------------------------------------------
+// ---------------------------  hooks  ----------------------------------
 
 func (j *jetController) PostParamsParseHook(param any) error {
 	if err := utils.Struct(param); err != nil {
@@ -89,6 +100,7 @@ type Person struct {
 
 func (j *jetController) GetV1Usage0Week(args *context.Args) (*Person, error) {
 	//bootTestLog.Infof("GetV1Usage0Week %v", *args)
+	time.Sleep(time.Second * 2)
 	return &Person{
 		Name: "张三",
 		Age:  18,

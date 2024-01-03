@@ -27,7 +27,6 @@ type handler struct {
 var handlerLog = xlog.NewWith("handler_log")
 
 func (h handler) ServeHTTP(ctx *fasthttp.RequestCtx, args []string) {
-	defer traceHttpReq(ctx)
 	switch string(ctx.Method()) {
 	case constant.MethodGet, constant.MethodPost, constant.MethodPut, constant.MethodDelete:
 		h.handleRequest(ctx, args)

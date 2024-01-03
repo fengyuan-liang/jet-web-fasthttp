@@ -32,6 +32,7 @@ func TestJetBoot(t *testing.T) {
 
 // ----------------------------------------------------------------------
 
+// 参数解析完成之后的hook，您可以使用它对参数进行校验，例如使用`validated`进行
 func (j *jetController) PostParamsParseHook(param any) error {
 	if err := utils.Struct(param); err != nil {
 		return errors.New(utils.ProcessErr(param, err))
@@ -40,7 +41,7 @@ func (j *jetController) PostParamsParseHook(param any) error {
 }
 
 func (j *jetController) PostMethodExecuteHook(param any) (data any, err error) {
-	// restful
+  // 你可以通过controller方法执行完后的hook来restful方式的处理返回结果
 	return utils.ObjToJsonStr(param), nil
 }
 
@@ -71,19 +72,7 @@ func (j *jetController) PostV1UsageContext(ctx jet.Ctx, req *req) (map[string]an
 	ctx.Put("req", req)
 	return ctx.Keys(), nil
 }
-// hook
-func (j *jetController) PostParamsParseHook(param any) error {
-    // 可以通过参数注入完后的hook对参数进行校验，比如使用`validated`库进行校验
-	if err := utils.Struct(param); err != nil {
-		return errors.New(utils.ProcessErr(param, err))
-	}
-	return nil
-}
-// hook
-func (j *jetController) PostMethodExecuteHook(param any) (data any, err error) {
-	// 你可以通过controller方法执行完后的hook来restful方式的处理返回结果
-	return utils.ObjToJsonStr(param), nil
-}
+
 
 func (j *jetController) GetV1UsageContext0(ctx Ctx, args *context.Args) (map[string]any, error) {
 	ctx.Logger().Info("GetV1UsageContext")
@@ -157,10 +146,10 @@ $ curl http://localhost/v1/usage/1/week
 #### 1.1 参数相关
 
 - [x] 支持通过挂载hook对参数进行预解析、自定义参数校验规则（目前支持hook有）
-  - PostParamsParseHook
-  - PostRouteMountHook
-  - PostMethodExecuteHook
-  - PreMethodExecuteHooks
+  - [x] PostParamsParseHook
+  - [x] PostRouteMountHook
+  - [x] PostMethodExecuteHook
+  - [x] PreMethodExecuteHook
 - [x] 添加hook注入自定义的`context`，便于进行鉴权以及链路追踪等操作
 
 ### 2. 🤡Aspect（切面）支持
@@ -174,6 +163,72 @@ $ curl http://localhost/v1/usage/1/week
 - [ ] 通过controller自定义路由前缀
 
 ### 4. 依赖注入支持
+
+在Jet中，依赖注入（inject）是非常核心的概念，Jet中几乎所有的功能都通过依赖注入完成（Jet底层基于`dig`进行依赖注入实现）
+
+例如我们可以向`Jet`中提供`JetController`，`Jet`会自动获取到并且解析路由
+
+```go
+type jetController struct {
+	inject.IJetController
+}
+
+func NewDemoController() inject.JetControllerResult {
+	return inject.NewJetController(&jetController{})
+}
+
+func main() {
+  xlog.SetOutputLevel(xlog.Ldebug)
+	//Register(&jetController{})
+  // 通过依赖注入的方式，注册controller并启动
+	jet.Provide(NewDemoController)
+	jet.Run(":8080")
+}
+```
+
+Jet推荐将依赖注入贯穿整个程序的开发周期，包括`MVC`架构下的`repo`、`service`、`controller`，或者`DDD`架构下的`domain`
+
+可以使用下面的方式并结合`init`方法，进行自动注入到`Jet`中，并且维护整个程序的生命周期
+
+```go
+package main
+
+import (
+	_ "xxx/apps/xxx/internal/component"
+	_ "xxx/apps/xxx/internal/controller"
+	_ "xxx/apps/xxx/internal/server"
+	_ "xxx/domain/repo"
+)
+
+func main() {
+	jet.Run(":8080")
+}
+```
+
+在其他领域层，我们需要将组件注册到`Jet`中
+
+```go
+// xxxController.go
+
+func init() {
+  // provide your 
+  jet.Provide(NewXxxController)
+}
+
+type XxxController struct {
+  xxxRepo repo.XxxRepo
+}
+
+func NewXxxController(xxxRepo repo.XxxRepo) jet.ControllerResult {
+  return jet.NewJetController(&jetController{
+    xxxRepo: xxxRepo
+  })
+}
+```
+
+
+
+
 
 ### 5.其他更新
 

@@ -7,6 +7,7 @@ require (
 	github.com/go-playground/validator/v10 v10.16.0
 	github.com/json-iterator/go v1.1.12
 	github.com/valyala/fasthttp v1.50.0
+	go.uber.org/dig v1.17.1
 )
 
 require (

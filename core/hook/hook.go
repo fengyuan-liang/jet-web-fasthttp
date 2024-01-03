@@ -5,9 +5,7 @@
 package hook
 
 import (
-	"github.com/fengyuan-liang/jet-web-fasthttp/pkg/utils"
 	"reflect"
-	"time"
 )
 
 type Hook struct {
@@ -18,7 +16,6 @@ type Hook struct {
 
 // GenHook see handle#AddHook
 func GenHook(rcvr *reflect.Value) *Hook {
-	defer utils.TraceElapsed(time.Now())
 	hook := new(Hook)
 	if methodByName := rcvr.MethodByName("PostParamsParseHook"); methodByName.IsValid() {
 		hook.PostParamsParseHooks = append(hook.PostParamsParseHooks, &methodByName)
