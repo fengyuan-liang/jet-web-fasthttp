@@ -226,11 +226,41 @@ func NewXxxController(xxxRepo repo.XxxRepo) jet.ControllerResult {
 }
 ```
 
+### 5. 中间件支持
 
+`Jet`对于中间件的支持极其简单粗暴、明了；当我们添加多个中间件时，
 
+```go
+func main() {
+	jet.Register(&jetController{})
+	jet.AddMiddleware(TraceJetMiddleware)
+	jet.Run(":8080")
+}
 
+func TraceJetMiddleware(next router.IJetRouter) (router.IJetRouter, error) {
+	return JetHandlerFunc(func(ctx *fasthttp.RequestCtx) {
+		defer utils.TraceHttpReq(ctx, time.Now())
+		next.ServeHTTP(ctx)
+	}), nil
+}
+```
 
-### 5.其他更新
+当请求发起
+
+```shell
+$ ➜  ~ curl http://localhost:8080/v1/usage/week/111
+["111"]%
+```
+
+我们能够非常直观的观察输出
+
+```shell
+2024/01/04 16:31:55.379274 [jet][INFO] | 200 | | GET | /v1/usage/week/111 | elapsed [2.00150788s]
+```
+
+当调用失败返回error时，后续的中间件将不再执行
+
+### 其他更新
 
 **2023/12/18**
 

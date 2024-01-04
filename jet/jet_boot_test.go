@@ -9,8 +9,6 @@ package jet
 import (
 	"errors"
 	"github.com/fengyuan-liang/jet-web-fasthttp/core/context"
-	"github.com/fengyuan-liang/jet-web-fasthttp/core/inject"
-	"github.com/fengyuan-liang/jet-web-fasthttp/core/middleware"
 	"github.com/fengyuan-liang/jet-web-fasthttp/pkg/utils"
 	"github.com/fengyuan-liang/jet-web-fasthttp/pkg/xlog"
 	"os"
@@ -19,7 +17,7 @@ import (
 )
 
 type jetController struct {
-	inject.IJetController
+	IJetController
 }
 
 func NewDemoController() ControllerResult {
@@ -34,7 +32,7 @@ func TestJetBoot(t *testing.T) {
 	}
 	xlog.SetOutputLevel(xlog.Ldebug)
 	//Register(&jetController{})
-	middleware.AddJetMiddleware(middleware.TraceJetMiddleware)
+	AddMiddleware(TraceJetMiddleware)
 	Provide(NewDemoController)
 	Run(":8080")
 }
@@ -55,14 +53,14 @@ func (j *jetController) PostMethodExecuteHook(param any) (data any, err error) {
 
 // curl http://localhost:8080/v1/usage/111/week  =>  {"code":401,"data":{},"msg":"bad token"}
 // if add -H "Authorization: <your_token_here>"  =>  {"code":200,"data":{},"msg":"msg"}
-func (j *jetController) PreMethodExecuteHook(ctx context.Ctx) (err error) {
-	if authorizationHeader := string(ctx.Request().Header.Peek("Authorization")); authorizationHeader == "" {
-		ctx.Response().SetStatusCode(401)
-		errInfo := map[string]any{"code": 401, "data": ctx.Keys(), "msg": "bad token"}
-		err = errors.New(utils.ObjToJsonStr(errInfo))
-	}
-	return
-}
+//func (j *jetController) PreMethodExecuteHook(ctx context.Ctx) (err error) {
+//	if authorizationHeader := string(ctx.Request().Header.Peek("Authorization")); authorizationHeader == "" {
+//		ctx.Response().SetStatusCode(401)
+//		errInfo := map[string]any{"code": 401, "data": ctx.Keys(), "msg": "bad token"}
+//		err = errors.New(utils.ObjToJsonStr(errInfo))
+//	}
+//	return
+//}
 
 // ----------------------------------------------------------------------
 
@@ -89,6 +87,7 @@ func (j *jetController) GetV1UsageContext0(ctx Ctx, args *context.Args) (map[str
 }
 
 func (j *jetController) GetV1UsageWeek0(args *context.Args) error {
+	time.Sleep(time.Second * 2)
 	bootTestLog.Infof("GetV1UsageWeek %v", *args)
 	return errors.New(utils.ObjToJsonStr(args.CmdArgs))
 }
@@ -100,7 +99,6 @@ type Person struct {
 
 func (j *jetController) GetV1Usage0Week(args *context.Args) (*Person, error) {
 	//bootTestLog.Infof("GetV1Usage0Week %v", *args)
-	time.Sleep(time.Second * 2)
 	return &Person{
 		Name: "张三",
 		Age:  18,

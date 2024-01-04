@@ -8,7 +8,6 @@ import (
 	"github.com/fengyuan-liang/jet-web-fasthttp/core/handler"
 	"github.com/fengyuan-liang/jet-web-fasthttp/core/hook"
 	"github.com/fengyuan-liang/jet-web-fasthttp/core/inject"
-	"github.com/fengyuan-liang/jet-web-fasthttp/core/middleware"
 	"github.com/fengyuan-liang/jet-web-fasthttp/pkg/xlog"
 	"github.com/valyala/fasthttp"
 	"reflect"
@@ -18,11 +17,6 @@ import (
 var DefaultJetRouter = NewJetRouter("0")
 
 func ServeHTTP(ctx *fasthttp.RequestCtx) {
-	for _, handlerFunc := range middleware.JetMiddlewareList {
-		if err := handlerFunc.ServeHTTP(ctx); err != nil {
-			return
-		}
-	}
 	DefaultJetRouter.ServeHTTP(ctx)
 }
 
@@ -53,7 +47,7 @@ func register(rcvr interface{}) {
 		val = reflect.ValueOf(typ)
 	}
 	// global hook
-	hooks := hook.GenHook(&val)
+	hooks := new(hook.Hook).GenHook(&val)
 	// Install the methods
 	for i := 0; i < typ.NumMethod(); i++ {
 		method := typ.Method(i)

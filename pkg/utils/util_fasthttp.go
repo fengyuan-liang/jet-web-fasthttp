@@ -76,7 +76,7 @@ var isTerminal = func() bool {
 	return (fileInfo.Mode() & os.ModeCharDevice) != 0
 }()
 
-func TraceHttpReq(ctx *fasthttp.RequestCtx) {
+func TraceHttpReq(ctx *fasthttp.RequestCtx, start time.Time) {
 	var (
 		statusCode = ctx.Response.StatusCode()
 		method     = string(ctx.Method())
@@ -84,7 +84,7 @@ func TraceHttpReq(ctx *fasthttp.RequestCtx) {
 	)
 	if isTerminal {
 		// status method path
-		httpTrace(time.Now(),
+		httpTrace(start,
 			fmt.Sprintf("|%s %3d %s| |%s %s %s| %v",
 				colorForStatus(statusCode), statusCode, reset,
 				colorForMethod(method), method, reset,
@@ -93,7 +93,7 @@ func TraceHttpReq(ctx *fasthttp.RequestCtx) {
 		)
 	} else {
 		// status method path
-		httpTrace(time.Now(),
+		httpTrace(start,
 			fmt.Sprintf("%v | %v | %v",
 				statusCode,
 				method,

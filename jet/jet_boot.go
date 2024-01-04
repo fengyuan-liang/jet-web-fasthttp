@@ -16,7 +16,6 @@ import (
 )
 
 type Server struct {
-	handlers []inject.IJetController
 }
 
 var (
@@ -34,22 +33,22 @@ func (j *Server) Initialize() (err error) {
 }
 
 func (j *Server) RunLoop() {
-	// provide by inject
-	if len(j.handlers) != 0 {
-		for _, handler := range j.handlers {
-			router.Register(handler)
-		}
-	}
 	jetLog.Infof("jet server start on [%s] elapsed [%v]", localAddr, time.Since(startTime))
 	jetLog.Errorf("%v", fasthttp.ListenAndServe(localAddr, router.ServeHTTP))
 }
 
 func (j *Server) Destroy() {
-	jetLog.Info("lego server Destroy...")
+	jetLog.Info("Jet server Destroy...")
 }
 
 func NewByInject(jetControllerList inject.JetControllerList) commands.MainInstance {
-	return &Server{handlers: jetControllerList.Handlers}
+	// provide by inject
+	if len(jetControllerList.Handlers) != 0 {
+		for _, handler := range jetControllerList.Handlers {
+			router.Register(handler)
+		}
+	}
+	return &Server{}
 }
 
 func New() *Server {
@@ -61,22 +60,28 @@ func Run(addr string) {
 	localAddr = addr
 	inject.Provide(NewByInject)
 	inject.Invoke(func(srv commands.MainInstance) {
+		// add middleware
+		if len(middlewares) != 0 {
+			for _, middleware := range middlewares {
+				if nextRouter, err := middleware(router.DefaultJetRouter); err != nil {
+					router.DefaultJetRouter = nextRouter
+				}
+			}
+		}
 		commands.Run(srv)
 	})
 }
 
-func Register(rcvrs ...interface{}) {
+func Register(rcvrs ...any) {
 	router.Register(rcvrs...)
 }
 
-func Invoke(i interface{}) {
+func Invoke(i any) {
 	inject.Invoke(i)
 }
 
 func Provide(constructs ...any) {
-	for _, construct := range constructs {
-		inject.Provide(construct)
-	}
+	inject.Provide(constructs...)
 }
 
 type ControllerResult struct {
@@ -84,7 +89,11 @@ type ControllerResult struct {
 	Handler inject.IJetController `group:"server"`
 }
 
-func NewJetController(controller inject.IJetController) ControllerResult {
+type IJetController interface {
+	inject.IJetController
+}
+
+func NewJetController(controller IJetController) ControllerResult {
 	return ControllerResult{
 		Handler: controller,
 	}

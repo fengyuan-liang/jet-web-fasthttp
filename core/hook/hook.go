@@ -15,8 +15,7 @@ type Hook struct {
 }
 
 // GenHook see handle#AddHook
-func GenHook(rcvr *reflect.Value) *Hook {
-	hook := new(Hook)
+func (hook *Hook) GenHook(rcvr *reflect.Value) *Hook {
 	if methodByName := rcvr.MethodByName("PostParamsParseHook"); methodByName.IsValid() {
 		hook.PostParamsParseHooks = append(hook.PostParamsParseHooks, &methodByName)
 	}

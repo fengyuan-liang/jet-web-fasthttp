@@ -24,7 +24,6 @@ type MainInstance interface {
 func Run(inst MainInstance) {
 	if inst == nil {
 		panic(errors.New("inst is nil, exit"))
-		return
 	}
 
 	rand.Seed(time.Now().UTC().UnixNano())
@@ -33,7 +32,6 @@ func Run(inst MainInstance) {
 	err := inst.Initialize()
 	if err != nil {
 		panic(err)
-		return
 	}
 	GMainInst = inst
 
