@@ -228,7 +228,7 @@ func NewXxxController(xxxRepo repo.XxxRepo) jet.ControllerResult {
 
 ### 5. 中间件支持
 
-`Jet`对于中间件的支持极其简单粗暴、明了；当我们添加多个中间件时，
+`Jet`对于中间件的支持极其简单粗暴、明了；当我们添加多个中间件时，jet会从内到外进行执行，也就是后添加的先执行，后添加的后执行
 
 ```go
 func main() {
@@ -264,6 +264,6 @@ $ ➜  ~ curl http://localhost:8080/v1/usage/week/111
 
 **2023/12/18**
 
-请求计时
+请求计时中间件，see`jet.TraceJetMiddleware`
 
 ![image-20231218173140763](https://cdn.fengxianhub.top/resources-master/image-20231218173140763.png)
