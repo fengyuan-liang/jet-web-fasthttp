@@ -20,6 +20,12 @@
 ## usage
 
 ```go
+go get github.com/fengyuan-liang/jet-web-fasthttp
+```
+
+## 使用说明
+
+```go
 // 在Jet中 路由是挂载在Controller上的，通过Controller进行路由分组
 type jetController struct{}
 
@@ -259,6 +265,71 @@ $ ➜  ~ curl http://localhost:8080/v1/usage/week/111
 ```
 
 当调用失败返回error时，后续的中间件将不再执行
+
+### 6. benchmark
+
+```shell
+$ ab -c 400 -n 20000 http://localhost:8081/v1/usage/1111/week
+This is ApacheBench, Version 2.3 <$Revision: 1879490 $>
+Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
+Licensed to The Apache Software Foundation, http://www.apache.org/
+
+Benchmarking localhost (be patient)
+Completed 2000 requests
+Completed 4000 requests
+Completed 6000 requests
+Completed 8000 requests
+Completed 10000 requests
+Completed 12000 requests
+Completed 14000 requests
+Completed 16000 requests
+Completed 18000 requests
+Completed 20000 requests
+Finished 20000 requests
+
+
+Server Software:        JetServer
+Server Hostname:        localhost
+Server Port:            8081
+
+Document Path:          /v1/usage/1111/week
+Document Length:        76 bytes
+
+Concurrency Level:      400
+Time taken for tests:   1.661 seconds
+Complete requests:      20000
+Failed requests:        0
+Total transferred:      4060000 bytes
+HTML transferred:       1520000 bytes
+Requests per second:    12041.08 [#/sec] (mean)
+Time per request:       33.220 [ms] (mean)
+Time per request:       0.083 [ms] (mean, across all concurrent requests)
+Transfer rate:          2387.05 [Kbytes/sec] received
+
+Connection Times (ms)
+              min  mean[+/-sd] median   max
+Connect:        0    0   0.2      0       1
+Processing:     8   33   2.4     33      39
+Waiting:        1   17   8.8     17      37
+Total:          8   33   2.4     33      39
+
+Percentage of the requests served within a certain time (ms)
+  50%     33
+  66%     33
+  75%     34
+  80%     34
+  90%     35
+  95%     36
+  98%     37
+  99%     38
+ 100%     39 (longest request)
+```
+
+二进制文件占用`14MB`，压测内存占用`6MB`
+
+![image-20240104182950530](https://cdn.fengxianhub.top/resources-master/image-20240104182950530.png)
+
+![image-20240104183001418](https://cdn.fengxianhub.top/resources-master/image-20240104183001418.png)
 
 ### 其他更新
 
