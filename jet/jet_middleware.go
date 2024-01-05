@@ -9,6 +9,7 @@ import (
 	"github.com/fengyuan-liang/jet-web-fasthttp/core/router"
 	"github.com/fengyuan-liang/jet-web-fasthttp/pkg/utils"
 	"github.com/valyala/fasthttp"
+	"runtime/debug"
 	"time"
 )
 
@@ -26,13 +27,26 @@ type JetMiddleware func(next router.IJetRouter) (router.IJetRouter, error)
 
 var middlewares []JetMiddleware
 
-func AddMiddleware(jetMiddleware JetMiddleware) {
-	middlewares = append(middlewares, jetMiddleware)
+func AddMiddleware(jetMiddlewareList ...JetMiddleware) {
+	middlewares = append(middlewares, jetMiddlewareList...)
 }
 
 func TraceJetMiddleware(next router.IJetRouter) (router.IJetRouter, error) {
 	return JetHandlerFunc(func(ctx *fasthttp.RequestCtx) {
 		defer utils.TraceHttpReq(ctx, time.Now())
+		next.ServeHTTP(ctx)
+	}), nil
+}
+
+func RecoverJetMiddleware(next router.IJetRouter) (router.IJetRouter, error) {
+	return JetHandlerFunc(func(ctx *fasthttp.RequestCtx) {
+		defer func() {
+			if err := recover(); err != nil {
+				handler.FailServerInternalErrorHandler(ctx, "Internal Server Error")
+				utils.PrintPanicInfo("Your server has experienced a panic, please check the stack log below")
+				debug.PrintStack()
+			}
+		}()
 		next.ServeHTTP(ctx)
 	}), nil
 }

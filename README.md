@@ -145,6 +145,59 @@ $ curl http://localhost/v1/usage/1/week
 {"request_id":"H5OQ4Jg0yBtg","code":200,"message":"success","data":["1"]}
 ```
 
+### example
+
+```go
+func main() {
+	//jet.Register(&DemoController{})
+	xlog.SetOutputLevel(xlog.Ldebug)
+	jet.AddMiddleware(jet.TraceJetMiddleware)
+	jet.Run(":8080")
+}
+
+func init() {
+	jet.Provide(NewDemoController)
+}
+
+func NewDemoController() jet.ControllerResult {
+	return jet.NewJetController(&DemoController{})
+}
+
+type BaseController struct {
+	jet.IJetController
+}
+
+func (BaseController) PostParamsParseHook(param any) error {
+	if err := utils.Struct(param); err != nil {
+		return errors.New(utils.ProcessErr(param, err))
+	}
+	return nil
+}
+
+// PostMethodExecuteHook restful
+func (BaseController) PostMethodExecuteHook(param any) (data any, err error) {
+	// restful
+	return utils.ObjToJsonStr(param), nil
+}
+
+type DemoController struct {
+	BaseController
+}
+
+type Person struct {
+	Name string `json:"name"`
+	Age  int    `json:"age"`
+}
+// 路由 get /v1/usage/{id}/week 已经可以访问了
+func (j *DemoController) GetV1Usage0Week(ctx jet.Ctx, args *jet.Args) (*Person, error) {
+	ctx.Logger().Infof("GetV1Usage0Week %v", *args)
+	return &Person{
+		Name: "张三",
+		Age:  18,
+	}, nil
+}
+```
+
 ## 更新计划
 
 ### 1. Hook
@@ -236,6 +289,8 @@ func NewXxxController(xxxRepo repo.XxxRepo) jet.ControllerResult {
 
 `Jet`对于中间件的支持极其简单粗暴、明了；当我们添加多个中间件时，jet会从内到外进行执行，也就是后添加的先执行，后添加的后执行
 
+#### 日志中间件
+
 ```go
 func main() {
 	jet.Register(&jetController{})
@@ -265,6 +320,40 @@ $ ➜  ~ curl http://localhost:8080/v1/usage/week/111
 ```
 
 当调用失败返回error时，后续的中间件将不再执行
+
+#### recover中间件
+
+可以使用`Jet`提供的默认的中间件
+
+```go
+func main() {
+  jet.AddMiddleware(RecoverJetMiddleware)
+  jet.Run(":8080")
+}
+
+```
+
+`Jet`会返回`Internal Server Error`，http code为`500`
+
+![image-20240105110436328](https://cdn.fengxianhub.top/resources-master/image-20240105110436328.png)
+
+当然您也可以自定义您自己的中间件，但是要注意的是，中间件是后添加的后执行，先添加的先执行，为了避免`recover`中间件对其他中间件逻辑产生干扰，`Jet`建议您将中间件添加到第一个的位置
+
+```go
+// 如果返回 xxx, err，后续的中间件将不再执行
+func RecoverJetMiddleware(next router.IJetRouter) (router.IJetRouter, error) {
+	return JetHandlerFunc(func(ctx *fasthttp.RequestCtx) {
+		defer func() {
+			if err := recover(); err != nil {
+				handler.FailServerInternalErrorHandler(ctx, "Internal Server Error")
+				utils.PrintPanicInfo("Your server has experienced a panic, please check the stack log below")
+				debug.PrintStack()
+			}
+		}()
+		next.ServeHTTP(ctx)
+	}), nil
+}
+```
 
 ### 6. benchmark
 

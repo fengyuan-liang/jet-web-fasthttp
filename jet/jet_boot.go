@@ -9,14 +9,14 @@ import (
 	"github.com/fengyuan-liang/jet-web-fasthttp/core/inject"
 	"github.com/fengyuan-liang/jet-web-fasthttp/core/router"
 	"github.com/fengyuan-liang/jet-web-fasthttp/pkg/commands"
+	"github.com/fengyuan-liang/jet-web-fasthttp/pkg/utils"
 	"github.com/fengyuan-liang/jet-web-fasthttp/pkg/xlog"
 	"github.com/valyala/fasthttp"
 	"go.uber.org/dig"
 	"time"
 )
 
-type Server struct {
-}
+type Server struct{}
 
 var (
 	jetLog    = xlog.NewWith("jet_log")
@@ -63,7 +63,7 @@ func Run(addr string) {
 		// add middleware
 		if len(middlewares) != 0 {
 			for _, middleware := range middlewares {
-				if nextRouter, err := middleware(router.DefaultJetRouter); err != nil {
+				if nextRouter, err := middleware(router.DefaultJetRouter); err == nil {
 					router.DefaultJetRouter = nextRouter
 				}
 			}
@@ -97,4 +97,24 @@ func NewJetController(controller IJetController) ControllerResult {
 	return ControllerResult{
 		Handler: controller,
 	}
+}
+
+// ----------------------------------------------------------------------
+
+// BaseJetController Provide some basic hooks, such as parameter validation and restful style returns
+type BaseJetController struct {
+	IJetController
+}
+
+func (BaseJetController) PostParamsParseHook(param any) (err error) {
+	if err = utils.Struct(param); err != nil {
+		err = errors.New(utils.ProcessErr(param, err))
+	}
+	return
+}
+
+// PostMethodExecuteHook restful
+func (BaseJetController) PostMethodExecuteHook(param any) (data any, err error) {
+	// restful
+	return utils.ObjToJsonStr(param), nil
 }

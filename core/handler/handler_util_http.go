@@ -38,3 +38,11 @@ func FailHandler(ctx *fasthttp.RequestCtx, data string) {
 	ctx.Response.Header.SetServer("JetServer")
 	ctx.SetBodyString(data)
 }
+
+// FailServerInternalErrorHandler Internal Server Error
+func FailServerInternalErrorHandler(ctx *fasthttp.RequestCtx, data string) {
+	ctx.Response.Header.SetServer("JetServer")
+	ctx.SetContentType(constant.MIMEApplicationJSON)
+	ctx.SetStatusCode(fasthttp.StatusInternalServerError)
+	ctx.SetBodyString(data)
+}

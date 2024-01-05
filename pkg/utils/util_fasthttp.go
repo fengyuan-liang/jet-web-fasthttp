@@ -102,3 +102,13 @@ func TraceHttpReq(ctx *fasthttp.RequestCtx, start time.Time) {
 		)
 	}
 }
+
+func PrintPanicInfo(msg string) {
+	if isTerminal {
+		// status method path
+		httpTraceLog.Infof("%v", fmt.Sprintf("|%s %s %s|", colorForStatus(500), msg, reset))
+	} else {
+		// status method path
+		httpTraceLog.Infof(fmt.Sprintf("%v", msg))
+	}
+}
