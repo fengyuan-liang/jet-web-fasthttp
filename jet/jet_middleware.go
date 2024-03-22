@@ -10,7 +10,6 @@ import (
 	"github.com/fengyuan-liang/jet-web-fasthttp/pkg/utils"
 	"github.com/valyala/fasthttp"
 	"runtime/debug"
-	"time"
 )
 
 type JetHandlerFunc func(ctx *fasthttp.RequestCtx)
@@ -33,7 +32,7 @@ func AddMiddleware(jetMiddlewareList ...JetMiddleware) {
 
 func TraceJetMiddleware(next router.IJetRouter) (router.IJetRouter, error) {
 	return JetHandlerFunc(func(ctx *fasthttp.RequestCtx) {
-		defer utils.TraceHttpReq(ctx, time.Now())
+		defer utils.TraceHttpReqByCtx(ctx)()
 		next.ServeHTTP(ctx)
 	}), nil
 }

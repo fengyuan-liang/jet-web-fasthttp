@@ -76,6 +76,14 @@ var isTerminal = func() bool {
 	return (fileInfo.Mode() & os.ModeCharDevice) != 0
 }()
 
+
+func TraceHttpReqByCtx(ctx *fasthttp.RequestCtx) func() {
+	pre := time.Now()
+	return func() {
+		TraceHttpReq(ctx, pre)
+	}
+}
+
 func TraceHttpReq(ctx *fasthttp.RequestCtx, start time.Time) {
 	var (
 		statusCode = ctx.Response.StatusCode()
