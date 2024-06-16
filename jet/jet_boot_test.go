@@ -8,6 +8,7 @@ package jet
 
 import (
 	"errors"
+	"github.com/fengyuan-liang/GoKit/collection/maps"
 	"github.com/fengyuan-liang/jet-web-fasthttp/core/context"
 	"github.com/fengyuan-liang/jet-web-fasthttp/pkg/utils"
 	"github.com/fengyuan-liang/jet-web-fasthttp/pkg/xlog"
@@ -65,11 +66,20 @@ func (j *jetController) PostMethodExecuteHook(param any) (data any, err error) {
 // ----------------------------------------------------------------------
 
 type req struct {
-	Id   int    `json:"id" validate:"required" reg_err_info:"is empty"`
-	Name string `json:"name" validate:"required" reg_err_info:"is empty"`
+	Id   int    `json:"id" form:"id" validate:"required" reg_err_info:"is empty"`
+	Name string `json:"name" form:"id" validate:"required" reg_err_info:"is empty"`
 }
 
-func (j *jetController) PostV1UsageContext(ctx Ctx, req *req) (map[string]any, error) {
+func (j *jetController) PostV1UsageContext(ctx Ctx, req *req) (maps.IMap[string, any], error) {
+	ctx.Logger().Info("GetV1UsageContext")
+	ctx.Logger().Infof("req:%v", req)
+	ctx.Put("request uri", ctx.Request().URI().String())
+	ctx.Put("traceId", ctx.Logger().ReqId)
+	ctx.Put("req", req)
+	return ctx.Keys(), nil
+}
+
+func (j *jetController) GetV1UsageContext(ctx Ctx, req *req) (maps.IMap[string, any], error) {
 	ctx.Logger().Info("GetV1UsageContext")
 	ctx.Logger().Infof("req:%v", req)
 	ctx.Put("request uri", ctx.Request().URI().String())
@@ -97,7 +107,7 @@ type Person struct {
 	Age  int    `json:"age"`
 }
 
-func (j *jetController) GetV1Usage0Week(args *context.Args) (*Person, error) {
+func (j *jetController) GetV1Usage0Week() (*Person, error) {
 	//bootTestLog.Infof("GetV1Usage0Week %v", *args)
 	return &Person{
 		Name: "张三",

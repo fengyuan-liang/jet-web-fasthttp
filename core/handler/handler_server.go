@@ -61,6 +61,8 @@ func (h handler) handleRequest(ctx *fasthttp.RequestCtx, args []string) {
 	}
 
 	switch h.parametersType {
+	case noParameter:
+		// noting to do
 	case oneParameterAndFirstIsCtx:
 		methodArgs = append(methodArgs, jetCtx)
 	case oneParameterAndFirstNotIsCtx:

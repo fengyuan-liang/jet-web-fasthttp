@@ -31,6 +31,9 @@ func (hook *Hook) GenHook(rcvr *reflect.Value) *Hook {
 }
 
 func (hook *Hook) PostParamsParse(param reflect.Value) (err error) {
+	if param.IsNil() {
+		return
+	}
 	for _, h := range hook.PostParamsParseHooks {
 		// call
 		result := h.Call([]reflect.Value{param})

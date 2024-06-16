@@ -26,7 +26,7 @@ type Ctx interface {
 	Get(key string) (value any, exists bool)
 	MustGet(key string) (value any)
 	Put(key string, value any)
-	Keys() map[string]any
+	Keys() maps.IMap[string, any]
 }
 
 func NewContext(ctx *fasthttp.RequestCtx, logs ...*xlog.Logger) Ctx {
@@ -75,8 +75,8 @@ func (c *Context) MustGet(key string) (value any) {
 	return c.keys.MustGet(key)
 }
 
-func (c *Context) Keys() (rawMap map[string]any) {
-	return c.keys.RawMap()
+func (c *Context) Keys() (rawMap maps.IMap[string, any]) {
+	return c.keys
 }
 
 func (c *Context) Put(key string, value any) {

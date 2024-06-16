@@ -3,7 +3,7 @@ module github.com/fengyuan-liang/jet-web-fasthttp
 go 1.18
 
 require (
-	github.com/fengyuan-liang/GoKit v0.0.2
+	github.com/fengyuan-liang/GoKit v0.1.4
 	github.com/go-playground/validator/v10 v10.16.0
 	github.com/json-iterator/go v1.1.12
 	github.com/valyala/fasthttp v1.50.0
