@@ -151,7 +151,7 @@ func (h handler) handleRequest(ctx *fasthttp.RequestCtx, args []string) {
 		if callValues[0].Interface() != nil {
 			// handle postParamsParseHook
 			postData := callValues[0].Interface()
-			if h.hook.HasMethodExecuteHook() {
+			if h.hook.HasPostMethodExecuteHook() {
 				if postData, err = h.hook.PostMethodExecuteHook(callValues[0]); err != nil {
 					FailHandler(ctx, err.Error())
 					return
@@ -177,7 +177,7 @@ func (h handler) handleParam(ctx *fasthttp.RequestCtx, args []string, in reflect
 	value := reflect.New(in)
 	if err = parseReqDefault(ctx, value, args); err != nil {
 		xlog.Errorf("parseReqDefault err: %v", err.Error())
-		return reflect.Value{}, nil
+		return reflect.Value{}, err
 	}
 	if !paramIsPtr {
 		value = value.Elem()

@@ -5,7 +5,12 @@
 package hook
 
 import (
+	"errors"
 	"reflect"
+)
+
+var (
+	paramIsNotValid = errors.New("param is not Valid")
 )
 
 type Hook struct {
@@ -31,8 +36,8 @@ func (hook *Hook) GenHook(rcvr *reflect.Value) *Hook {
 }
 
 func (hook *Hook) PostParamsParse(param reflect.Value) (err error) {
-	if param.IsNil() {
-		return
+	if !param.IsValid() {
+		return paramIsNotValid
 	}
 	for _, h := range hook.PostParamsParseHooks {
 		// call
@@ -47,11 +52,14 @@ func (hook *Hook) PostParamsParse(param reflect.Value) (err error) {
 	return
 }
 
-func (hook *Hook) HasMethodExecuteHook() bool {
+func (hook *Hook) HasPostMethodExecuteHook() bool {
 	return len(hook.PostMethodExecuteHooks) != 0
 }
 
 func (hook *Hook) PostMethodExecuteHook(param reflect.Value) (data any, err error) {
+	if !param.IsValid() {
+		return nil, paramIsNotValid
+	}
 	for _, h := range hook.PostMethodExecuteHooks {
 		// call
 		result := h.Call([]reflect.Value{param})

@@ -108,13 +108,13 @@ type BaseJetController struct {
 
 func (BaseJetController) PostParamsParseHook(param any) (err error) {
 	if err = utils.Struct(param); err != nil {
-		err = errors.New(utils.ProcessErr(param, err))
+		err = errors.New(utils.ObjToJsonStr(map[string]any{"code": 400, "message": "bad request", "data": utils.ProcessErr(param, err)}))
 	}
 	return
 }
 
-// PostMethodExecuteHook restful
-func (BaseJetController) PostMethodExecuteHook(param any) (data any, err error) {
-	// restful
-	return utils.ObjToJsonStr(param), nil
-}
+//// PostMethodExecuteHook restful
+//func (BaseJetController) PostMethodExecuteHook(param any) (data any, err error) {
+//	// restful
+//	return utils.ObjToJsonStr(param), nil
+//}

@@ -18,7 +18,7 @@ import (
 )
 
 type jetController struct {
-	IJetController
+	BaseJetController
 }
 
 func NewDemoController() ControllerResult {
@@ -39,13 +39,6 @@ func TestJetBoot(t *testing.T) {
 }
 
 // ---------------------------  hooks  ----------------------------------
-
-func (j *jetController) PostParamsParseHook(param any) error {
-	if err := utils.Struct(param); err != nil {
-		return errors.New(utils.ProcessErr(param, err))
-	}
-	return nil
-}
 
 func (j *jetController) PostMethodExecuteHook(param any) (data any, err error) {
 	// restful
