@@ -55,7 +55,7 @@ func TestJetBoot(t *testing.T) {
 
 type req struct {
 	Id   int    `json:"id" form:"id" validate:"required" reg_err_info:"is empty"`
-	Name string `json:"name" form:"id" validate:"required" reg_err_info:"is empty"`
+	Name string `json:"name" form:"name" validate:"required" reg_err_info:"is empty"`
 }
 
 func (j *jetController) PostV1UsageContext(ctx Ctx, req *req) (maps.IMap[string, any], error) {

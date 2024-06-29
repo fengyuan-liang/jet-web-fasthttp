@@ -14,14 +14,14 @@ func Container() *dig.Container {
 
 func Invoke(i interface{}) {
 	if err := container.Invoke(i); err != nil {
-		// noting to do
+		panic(err)
 	}
 }
 
 func Provide(constructs ...any) {
 	for _, construct := range constructs {
 		if err := container.Provide(construct); err != nil {
-			// noting to do
+			panic(err)
 		}
 	}
 }
