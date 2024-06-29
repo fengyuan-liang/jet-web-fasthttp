@@ -40,11 +40,6 @@ func TestJetBoot(t *testing.T) {
 
 // ---------------------------  hooks  ----------------------------------
 
-func (j *jetController) PostMethodExecuteHook(param any) (data any, err error) {
-	// restful
-	return utils.ObjToJsonStr(param), nil
-}
-
 // curl http://localhost:8080/v1/usage/111/week  =>  {"code":401,"data":{},"msg":"bad token"}
 // if add -H "Authorization: <your_token_here>"  =>  {"code":200,"data":{},"msg":"msg"}
 //func (j *jetController) PreMethodExecuteHook(ctx context.Ctx) (err error) {
@@ -72,13 +67,18 @@ func (j *jetController) PostV1UsageContext(ctx Ctx, req *req) (maps.IMap[string,
 	return ctx.Keys(), nil
 }
 
-func (j *jetController) GetV1UsageContext(ctx Ctx, req *req) (maps.IMap[string, any], error) {
+type Response struct {
+	RequestId string `json:"request_id,omitempty"` //请求ID
+	Code      int    `json:"code"`                 //错误码，200 成功，其他失败
+	Message   string `json:"message,omitempty"`    //错误信息
+	Data      any    `json:"data,omitempty"`
+}
+
+func (j *jetController) GetV1UsageContext(ctx Ctx, req *req) (*Response, error) {
 	ctx.Logger().Info("GetV1UsageContext")
 	ctx.Logger().Infof("req:%v", req)
-	ctx.Put("request uri", ctx.Request().URI().String())
 	ctx.Put("traceId", ctx.Logger().ReqId)
-	ctx.Put("req", req)
-	return ctx.Keys(), nil
+	return &Response{Data: ctx.Keys()}, nil
 }
 
 func (j *jetController) GetV1UsageContext0(ctx Ctx, args *context.Args) (map[string]any, error) {

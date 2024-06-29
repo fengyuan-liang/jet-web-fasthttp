@@ -113,8 +113,8 @@ func (BaseJetController) PostParamsParseHook(param any) (err error) {
 	return
 }
 
-//// PostMethodExecuteHook restful
-//func (BaseJetController) PostMethodExecuteHook(param any) (data any, err error) {
-//	// restful
-//	return utils.ObjToJsonStr(param), nil
-//}
+// PostMethodExecuteHook restful
+func (BaseJetController) PostMethodExecuteHook(param any) (data any, err error) {
+	// restful
+	return utils.ObjToJsonStr(param), nil
+}
