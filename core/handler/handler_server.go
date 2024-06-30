@@ -115,7 +115,6 @@ func (h handler) handleRequest(ctx *fasthttp.RequestCtx, args []string) {
 	switch h.returnValuesType {
 	case noReturnValue:
 		// noting to do
-		SuccessHandler(ctx, constant.EmptyString)
 	case OneReturnValueAndIsError:
 		if callValues[0].Interface() != nil {
 			err = callValues[0].Interface().(error)

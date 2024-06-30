@@ -3,8 +3,6 @@ github.com/andybalholm/brotli v1.0.6/go.mod h1:fO7iG3H7G2nSZ7m0zPUDn85XEX2GTukHG
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/fengyuan-liang/GoKit v0.0.2 h1:nHJvxqvtEnKTH39AUrmM95px3bRvU3Q4IpoRDIG3+Yg=
-github.com/fengyuan-liang/GoKit v0.0.2/go.mod h1:fn8P8BuHsEFHqt/MY0ucuMYn+QSRq+QbY/0TxSURd1c=
 github.com/fengyuan-liang/GoKit v0.1.4 h1:v4NSkvB7HrG6wSqidh4d7mMbweG/GlRYHAe6+MV5ldw=
 github.com/fengyuan-liang/GoKit v0.1.4/go.mod h1:qVsJ6e/mpCtaEeC/5j8qIushXxSNfYm6AyiKY0ub6Rs=
 github.com/gabriel-vasile/mimetype v1.4.2 h1:w5qFW6JKBz9Y393Y4q372O9A7cUSequkh1Q7OhCmWKU=
