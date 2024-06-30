@@ -19,10 +19,15 @@ import (
 type Server struct{}
 
 var (
-	jetLog    = xlog.NewWith("jet_log")
-	startTime time.Time
-	localAddr string
+	jetLog         = xlog.NewWith("jet_log")
+	startTime      time.Time
+	localAddr      string
+	fastHttpServer *fasthttp.Server
 )
+
+func SetFastHttpServer(server *fasthttp.Server) {
+	fastHttpServer = server
+}
 
 func (j *Server) Initialize() (err error) {
 	if localAddr == "" {
@@ -34,7 +39,11 @@ func (j *Server) Initialize() (err error) {
 
 func (j *Server) RunLoop() {
 	jetLog.Infof("jet server start on [%s] elapsed [%v]", localAddr, time.Since(startTime))
-	jetLog.Errorf("%v", fasthttp.ListenAndServe(localAddr, router.ServeHTTP))
+	if fastHttpServer == nil {
+		jetLog.Errorf("%v", fasthttp.ListenAndServe(localAddr, router.ServeHTTP))
+	} else {
+		jetLog.Errorf("%v", fastHttpServer.ListenAndServe(localAddr))
+	}
 }
 
 func (j *Server) Destroy() {
