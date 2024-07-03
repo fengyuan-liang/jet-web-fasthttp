@@ -22,6 +22,7 @@ type Ctx interface {
 	Logger() *xlog.Logger
 	Request() *fasthttp.Request
 	Response() *fasthttp.Response
+	FastHttpCtx() *fasthttp.RequestCtx
 	FormFile(key string) (*multipart.FileHeader, error)
 	Get(key string) (value any, exists bool)
 	MustGet(key string) (value any)
@@ -37,10 +38,11 @@ func NewContext(ctx *fasthttp.RequestCtx, logs ...*xlog.Logger) Ctx {
 		log = xlog.New(os.Stderr, "", xlog.Ldefault, xlog.GenReqId())
 	}
 	return &Context{
-		keys: maps.NewLinkedHashMap[string, any](),
-		log:  log,
-		req:  &ctx.Request,
-		resp: &ctx.Response,
+		keys:        maps.NewLinkedHashMap[string, any](),
+		log:         log,
+		req:         &ctx.Request,
+		resp:        &ctx.Response,
+		fastHttpCtx: ctx,
 	}
 }
 
@@ -49,10 +51,11 @@ func NewContext(ctx *fasthttp.RequestCtx, logs ...*xlog.Logger) Ctx {
 type Context struct {
 	// keys is a key/value pair exclusively for the context of each request.
 	// default maps.LinkedHashMap
-	keys maps.IMap[string, any]
-	log  *xlog.Logger // log for context
-	req  *fasthttp.Request
-	resp *fasthttp.Response
+	keys        maps.IMap[string, any]
+	log         *xlog.Logger // log for context
+	req         *fasthttp.Request
+	resp        *fasthttp.Response
+	fastHttpCtx *fasthttp.RequestCtx
 }
 
 func (c *Context) Logger() *xlog.Logger {
@@ -65,6 +68,10 @@ func (c *Context) Request() *fasthttp.Request {
 
 func (c *Context) Response() *fasthttp.Response {
 	return c.resp
+}
+
+func (c *Context) FastHttpCtx() *fasthttp.RequestCtx {
+	return c.fastHttpCtx
 }
 
 func (c *Context) Get(key string) (value any, exists bool) {

@@ -64,6 +64,9 @@ func (j *jetController) PostV1UsageContext(ctx Ctx, req *req) (maps.IMap[string,
 	ctx.Put("request uri", ctx.Request().URI().String())
 	ctx.Put("traceId", ctx.Logger().ReqId)
 	ctx.Put("req", req)
+	value := ctx.FastHttpCtx().UserValue(11)
+	ctx.Logger().Infof("value:%v", value)
+
 	return ctx.Keys(), nil
 }
 
