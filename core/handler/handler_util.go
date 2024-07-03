@@ -175,20 +175,25 @@ func isFormCall(req *fasthttp.Request) bool {
 	return ct == "application/x-www-form-urlencoded" || strings.HasPrefix(ct, "application/x-www-form-urlencoded;") || ct == "multipart/form-data" || strings.HasPrefix(ct, "multipart/form-data;")
 }
 
-func parseForm(retElem reflect.Value, ctx *fasthttp.RequestCtx) error {
-	t := retElem.Type()
-	for i := 0; i < retElem.NumField(); i++ {
+func parseForm(retElem reflect.Value, ctx *fasthttp.RequestCtx) (err error) {
+	if retElem.Kind() != reflect.Ptr {
+		err = errors.Info(syscall.EINVAL, "formutil.ParseValue: ret.type != pointer")
+		return
+	}
+	v := retElem.Elem()
+	t := v.Type()
+	for i := 0; i < v.NumField(); i++ {
 		sf := t.Field(i)
 		formTag := sf.Tag.Get("form")
 		if formTag == "" {
 			continue
 		}
-		sfv := retElem.Field(i)
+		sfv := v.Field(i)
 		formValue := ctx.FormValue(formTag)
 		if len(formValue) == 0 {
 			continue
 		}
-		if err := strconvParseValue(sfv, string(formValue)); err != nil {
+		if err = strconvParseValue(sfv, string(formValue)); err != nil {
 			return errors.Info(err, "formutil.ParseValue: parse form field -", sf.Name).Detail(err)
 		}
 	}

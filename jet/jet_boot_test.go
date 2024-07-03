@@ -99,8 +99,8 @@ func (j *jetController) GetV1UsageWeek0(args *context.Args) error {
 }
 
 type Person struct {
-	Name string `json:"name"`
-	Age  int    `json:"age"`
+	Name string `json:"name" form:"name"`
+	Age  int    `json:"age" form:"age"`
 }
 
 func (j *jetController) GetV1Usage0Week() (*Person, error) {
@@ -119,4 +119,9 @@ func (j *jetController) GetV1UsageWeek(args string) (map[string]string, error) {
 func (j *jetController) GetV1UsageWeekk0(args *context.Args) error {
 	bootTestLog.Infof("GetV1UsageWeekk0 %v", *args)
 	return errors.New(utils.ObjToJsonStr(args.CmdArgs))
+}
+
+func (j *jetController) PostFormCallTest(p *Person) (*Person, error) {
+	bootTestLog.Infof("GetV1UsageWeekk0 %v", *p)
+	return p, nil
 }
