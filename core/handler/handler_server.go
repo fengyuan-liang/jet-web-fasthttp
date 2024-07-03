@@ -200,7 +200,8 @@ func parseReqDefault(ctx *fasthttp.RequestCtx, param reflect.Value, args []strin
 			return
 		}
 		return utils.ByteToObj(ctx.Request.Body(), param.Interface())
-
+	} else if isFormCall(&ctx.Request) {
+		return parseForm(param, ctx)
 	} else {
 		return parseValue(param, ctx, "form")
 	}

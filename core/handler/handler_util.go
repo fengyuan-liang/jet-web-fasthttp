@@ -30,6 +30,8 @@ func parseReqWithBody(ret *reflect.Value, ctx *fasthttp.RequestCtx) error {
 			return nil
 		}
 		return utils.Decode(req.BodyStream(), ret.Interface())
+	} else if isFormCall(req) {
+		return parseForm(retElem, ctx)
 	}
 	return syscall.EINVAL
 }
@@ -161,6 +163,36 @@ func isJsonCall(req *fasthttp.Request) bool {
 	}
 
 	return ct == "application/json" || strings.HasPrefix(ct, "application/json;")
+}
+
+func isFormCall(req *fasthttp.Request) bool {
+	var ct string
+	if ctBytes := req.Header.Peek(constant.HeaderContentType); ctBytes == nil {
+		return false
+	} else {
+		ct = string(ctBytes)
+	}
+	return ct == "application/x-www-form-urlencoded" || strings.HasPrefix(ct, "application/x-www-form-urlencoded;") || ct == "multipart/form-data" || strings.HasPrefix(ct, "multipart/form-data;")
+}
+
+func parseForm(retElem reflect.Value, ctx *fasthttp.RequestCtx) error {
+	t := retElem.Type()
+	for i := 0; i < retElem.NumField(); i++ {
+		sf := t.Field(i)
+		formTag := sf.Tag.Get("form")
+		if formTag == "" {
+			continue
+		}
+		sfv := retElem.Field(i)
+		formValue := ctx.FormValue(formTag)
+		if len(formValue) == 0 {
+			continue
+		}
+		if err := strconvParseValue(sfv, string(formValue)); err != nil {
+			return errors.Info(err, "formutil.ParseValue: parse form field -", sf.Name).Detail(err)
+		}
+	}
+	return nil
 }
 
 func prefixOf(name string) (prefix string, ok bool) {
