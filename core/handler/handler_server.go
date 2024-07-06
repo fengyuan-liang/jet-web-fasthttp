@@ -196,7 +196,7 @@ func parseReqDefault(ctx *fasthttp.RequestCtx, param reflect.Value, args []strin
 		}
 	}
 	if isJsonCall(&ctx.Request) {
-		if ctx.Request.Header.ContentLength() == 0 {
+		if ctx.Request.Header.ContentLength() <= 0 || len(ctx.Request.Body()) <= 0 {
 			return
 		}
 		return utils.ByteToObj(ctx.Request.Body(), param.Interface())
