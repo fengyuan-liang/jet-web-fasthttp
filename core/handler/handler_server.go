@@ -197,7 +197,7 @@ func parseReqDefault(ctx *fasthttp.RequestCtx, param reflect.Value, args []strin
 	}
 	if isJsonCall(&ctx.Request) {
 		if ctx.Request.Header.ContentLength() <= 0 || len(ctx.Request.Body()) <= 0 {
-			return
+			return parseValue(param, ctx, "form")
 		}
 		return utils.ByteToObj(ctx.Request.Body(), param.Interface())
 	} else if isFormCall(&ctx.Request) {

@@ -5,6 +5,7 @@
 package jet
 
 import (
+	"fmt"
 	"github.com/fengyuan-liang/jet-web-fasthttp/core/handler"
 	"github.com/fengyuan-liang/jet-web-fasthttp/core/router"
 	"github.com/fengyuan-liang/jet-web-fasthttp/pkg/utils"
@@ -43,6 +44,8 @@ func RecoverJetMiddleware(next router.IJetRouter) (router.IJetRouter, error) {
 			if err := recover(); err != nil {
 				handler.FailServerInternalErrorHandler(ctx, "Internal Server Error")
 				utils.PrintPanicInfo("Your server has experienced a panic, please check the stack log below")
+				fmt.Printf("Panic: %v\n", err)
+				fmt.Printf("stack info\n")
 				debug.PrintStack()
 			}
 		}()
