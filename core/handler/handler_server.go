@@ -43,18 +43,26 @@ func (h handler) AddHook(hooks *hook.Hook) {
 
 func (h handler) handleRequest(ctx *fasthttp.RequestCtx, args []string) {
 	var (
-		uri        = ctx.URI().String()
-		mtype      = h.method.Type
-		methodArgs = []reflect.Value{*h.rcvr}
-		param      reflect.Value
-		err        error
-		jetCtx     = reflect.ValueOf(context.NewContext(ctx))
+		uri         = ctx.URI().String()
+		mtype       = h.method.Type
+		methodArgs  = []reflect.Value{*h.rcvr}
+		param       reflect.Value
+		err         error
+		jetCtx      = context.NewContext(ctx)
+		jetCtxValue = reflect.ValueOf(jetCtx)
 	)
 	handlerLog.Debugf("handle uri[%s]", uri)
 
+	// global hook
+	if len(hook.PostJetCtxInitHooks) > 0 {
+		for _, postJetCtxInitHook := range hook.PostJetCtxInitHooks {
+			postJetCtxInitHook(jetCtx)
+		}
+	}
+
 	// handle PreMethodExecuteHook
 	if h.hook.HasPreMethodExecuteHooks() {
-		if err = h.hook.PreMethodExecuteHook(jetCtx); err != nil {
+		if err = h.hook.PreMethodExecuteHook(jetCtxValue); err != nil {
 			FailHandler(ctx, err.Error())
 			return
 		}
@@ -64,7 +72,7 @@ func (h handler) handleRequest(ctx *fasthttp.RequestCtx, args []string) {
 	case noParameter:
 		// noting to do
 	case oneParameterAndFirstIsCtx:
-		methodArgs = append(methodArgs, jetCtx)
+		methodArgs = append(methodArgs, jetCtxValue)
 	case oneParameterAndFirstNotIsCtx:
 		param, err = h.handleParam(ctx, args, mtype.In(1), err)
 		if err != nil {
@@ -91,7 +99,7 @@ func (h handler) handleRequest(ctx *fasthttp.RequestCtx, args []string) {
 			FailHandler(ctx, err.Error())
 			return
 		}
-		methodArgs = append(methodArgs, jetCtx, param)
+		methodArgs = append(methodArgs, jetCtxValue, param)
 	case twoParameterAndSecondIsCtx:
 		// handle param
 		param, err = h.handleParam(ctx, args, mtype.In(1), err)
@@ -105,7 +113,7 @@ func (h handler) handleRequest(ctx *fasthttp.RequestCtx, args []string) {
 			FailHandler(ctx, err.Error())
 			return
 		}
-		methodArgs = append(methodArgs, param, jetCtx)
+		methodArgs = append(methodArgs, param, jetCtxValue)
 	default:
 		panic("illegal method signature")
 	}

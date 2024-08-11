@@ -35,6 +35,10 @@ func TestJetBoot(t *testing.T) {
 	//Register(&jetController{})
 	AddMiddleware(RecoverJetMiddleware, TraceJetMiddleware)
 	Provide(NewDemoController)
+	// test hook
+	AddPostJetCtxInitHook(func(ctx context.Ctx) {
+		ctx.Logger().Infof("==>>>")
+	})
 	Run(":8080")
 }
 
@@ -66,7 +70,6 @@ func (j *jetController) PostV1UsageContext(ctx Ctx, req *req) (maps.IMap[string,
 	ctx.Put("req", req)
 	value := ctx.FastHttpCtx().UserValue(11)
 	ctx.Logger().Infof("value:%v", value)
-
 	return ctx.Keys(), nil
 }
 
