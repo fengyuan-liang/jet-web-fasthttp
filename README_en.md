@@ -1,18 +1,18 @@
 # Jet 🛩
 
-一款和gin不太一样的golang web服务器
+A Golang web server that is different from gin.
 
 ## Overview
 
-- 异常简洁的路由规则，再也不用像gin一样写繁琐的路由，并且自动解析参数
-- 依赖注入 & 依赖倒置 & 开闭原则
-- 集成 fasthttp
-- 更加细粒度的Hook支持
-- DDD & 六边形架构
-- CQS & 聚合根
-- 一级缓存 & 二级缓存 & 防击穿（暂未实现）
-- 集成普罗米修斯（暂未实现）
-- AOP 集成（暂未实现）
+- Exceptionally concise routing rules, no longer need to write tedious routes like gin, and automatically parse parameters.
+- Dependency injection & inversion of control & open-closed principle.
+- Integration with fasthttp.
+- More fine-grained Hook support.
+- DDD & Hexagonal architecture.
+- CQS & Aggregate Root.
+- First-level cache & Second-level cache & Anti-cache penetration (not yet implemented).
+- Integration with Prometheus (not yet implemented).
+- AOP integration (not yet implemented).
 
 ## usage
 
@@ -23,7 +23,7 @@ go get github.com/fengyuan-liang/jet-web-fasthttp
 ## 使用说明
 
 ```go
-// 在Jet中 路由是挂载在Controller上的，通过Controller进行路由分组
+// In Jet, routes are mounted on controllers, and route grouping is done through controllers.
 type jetController struct{}
 
 var bootTestLog = xlog.NewWith("boot_test_log")
@@ -33,9 +33,9 @@ func TestJetBoot(t *testing.T) {
 	t.Logf("err:%v", jet.Run(":8080"))
 }
 
-// ----------------------------------------------------------------------
+// ------------------------------  HOOK  ----------------------------------
 
-// 参数解析完成之后的hook，您可以使用它对参数进行校验，例如使用`validated`进行
+// After parameter parsing is completed, you can use hooks to perform parameter validation. For example, you can use validated for validation.
 func (j *jetController) PostParamsParseHook(param any) error {
 	if err := utils.Struct(param); err != nil {
 		return errors.New(utils.ProcessErr(param, err))
@@ -44,7 +44,7 @@ func (j *jetController) PostParamsParseHook(param any) error {
 }
 
 func (j *jetController) PostMethodExecuteHook(param any) (data any, err error) {
-  // 你可以通过controller方法执行完后的hook来restful方式的处理返回结果
+    // You can use hooks after the execution of controller methods to handle the result in a RESTful manner.
 	return utils.ObjToJsonStr(param), nil
 }
 
@@ -59,9 +59,9 @@ func (j *jetController) PreMethodExecuteHook(ctx context.Ctx) (err error) {
 	return
 }
 
-// ----------------------------------------------------------------------
+// --------------------------------  ROUTER  -------------------------------
 
-// 我们会尽可能的找到您需要的参数并将参数注入到您的结构体参数中
+// We will make every effort to find the parameters you need and inject them into your struct parameters.
 type req struct {
 	Id   int    `json:"id" validate:"required" reg_err_info:"cannot empty"`
 	Name string `json:"name" validate:"required" reg_err_info:"cannot empty"`
@@ -96,7 +96,7 @@ type Person struct {
 }
 
 func (j *jetController) GetV1Usage0Week(args *context.Args) (*Person, error) {
-	//bootTestLog.Infof("GetV1Usage0Week %v", *args)
+	// bootTestLog.Infof("GetV1Usage0Week %v", *args)
 	return &Person{
 		Name: "张三",
 		Age:  18,
@@ -115,21 +115,21 @@ func (j *jetController) GetV1UsageWeekk0(args *context.Args) error {
 
 ```
 
-我们注意到，`UserController`的方法比较有意思，叫`GetV1UsageWeek`，其实这代表着我们有一个接口`v1/usage/week`已经写好了，请求方式为`Get`，我们请求的参数会自动注入到`r *Args`中
+We noticed that the `UserController` method is quite interesting, named `GetV1UsageWeek`. In fact, this indicates that we have an endpoint `v1/usage/week` already implemented, with a `GET` request method. The requested parameters will be automatically injected into `r *Args`.
 
 ```shell
 $ curl http://localhost/v1/usage/week?form_param1=1
 {"request_id":"ZRgQg3Osptrx","code":200,"message":"success","data":"1"}
 ```
 
-如果想要定义`v1/usage/week/1`的形式，或者`v1/usage/1/week`，我们可以使用`0`或其他符号填充名字
+If you want to define the form `v1/usage/week/1` or `v1/usage/1/week`, you can use `0` or any other symbol as a placeholder in the route definition. For example, you can define the route as `v1/usage/:placeholder/week`, where `:placeholder` can be replaced with `0`, `1`, or any other desired value.
 
 ```go
-GetV1UsageWeek0 -> v1/usage/week/1 // 0的位置表示要接受一个可变的参数
+GetV1UsageWeek0 -> v1/usage/week/1 // The position of 0 indicates that it is meant to accept a variable parameter.
 GetV1Usage0Week -> v1/usage/1/week
 ```
 
-参数会默认注入到`CmdArgs`中
+The parameters will be automatically injected into `CmdArgs` by default.
 
 ```go
 func (u *UserController) GetV1Usage0Week(r *Args, env *rpc.Env) (*api.Response, error) {
@@ -195,34 +195,38 @@ func (j *DemoController) GetV1Usage0Week(ctx jet.Ctx, args *jet.Args) (*Person, 
 }
 ```
 
-## 更新计划
+## Update Plan
 
 ### 1. Hook
 
-#### 1.1 参数相关
+#### 1.1 Parameter-related
 
-- [x] 支持通过挂载hook对参数进行预解析、自定义参数校验规则（目前支持hook有）
-  - [x] PostParamsParseHook
-  - [x] PostRouteMountHook
-  - [x] PostMethodExecuteHook
-  - [x] PreMethodExecuteHook
-- [x] 添加hook注入自定义的`context`，便于进行鉴权以及链路追踪等操作
+Support pre-parsing and custom parameter validation rules through mounted hooks (currently supported hooks include)
 
-### 2. 🤡Aspect（切面）支持
+- [x] PostParamsParseHook
+- [x] PostRouteMountHook
+- [x] PostMethodExecuteHook
+- [x] PreMethodExecuteHook
 
-#### 2.1 常规切面
+other
 
-- [ ] 前置、后置、异常、环绕、最终五种切面
+- [x] Add hook injection for custom `context` to facilitate authentication and tracing operations.
 
-### 3. 路由策略
+### 2. 🤡Aspect support
 
-- [ ] 通过controller自定义路由前缀
+#### 2.1 Aspect 
 
-### 4. 依赖注入支持
+- [ ] The five types of aspects are: before, after, exception, around, and finally.
 
-在Jet中，依赖注入（inject）是非常核心的概念，Jet中几乎所有的功能都通过依赖注入完成（Jet底层基于`dig`进行依赖注入实现）
+### 3. router
 
-例如我们可以向`Jet`中提供`JetController`，`Jet`会自动获取到并且解析路由
+- [ ] Customize the route prefix through the controller.
+
+### 4. inject support
+
+In Jet, dependency injection (inject) is a fundamental concept, and almost all functionalities in Jet are accomplished through dependency injection (Jet relies on `dig` for its underlying dependency injection implementation).
+
+For example, you can provide `JetController` to Jet, and it will automatically detect and parse the routes.
 
 ```go
 type jetController struct {
@@ -235,16 +239,15 @@ func NewDemoController() inject.JetControllerResult {
 
 func main() {
   xlog.SetOutputLevel(xlog.Ldebug)
-	//Register(&jetController{})
-  // 通过依赖注入的方式，注册controller并启动
+    // inject
 	jet.Provide(NewDemoController)
 	jet.Run(":8080")
 }
 ```
 
-Jet推荐将依赖注入贯穿整个程序的开发周期，包括`MVC`架构下的`repo`、`service`、`controller`，或者`DDD`架构下的`domain`
+Jet recommends incorporating dependency injection throughout the entire development lifecycle of the program, including in the `repo`, `service`, and `controller` layers of the MVC architecture, or in the `domain` layer of the DDD architecture.
 
-可以使用下面的方式并结合`init`方法，进行自动注入到`Jet`中，并且维护整个程序的生命周期
+You can use the following approach, combined with the `init` method, to automatically inject dependencies into Jet and manage the lifecycle of the entire program:
 
 ```go
 package main
@@ -261,7 +264,7 @@ func main() {
 }
 ```
 
-在其他领域层，我们需要将组件注册到`Jet`中
+In other domain layers, we need to register components with Jet.
 
 ```go
 // xxxController.go
@@ -282,11 +285,11 @@ func NewXxxController(xxxRepo repo.XxxRepo) jet.ControllerResult {
 }
 ```
 
-### 5. 中间件支持
+### 5. middleware 
 
-`Jet`对于中间件的支持极其简单粗暴、明了；当我们添加多个中间件时，jet会从内到外进行执行，也就是后添加的先执行，后添加的后执行
+The support for middleware in Jet is straightforward, direct, and clear. When we add multiple middleware, Jet executes them from the inside out, meaning that the middleware added later will be executed first, and the ones added earlier will be executed later.
 
-#### 日志中间件
+#### Logging middleware
 
 ```go
 func main() {
@@ -303,24 +306,24 @@ func TraceJetMiddleware(next router.IJetRouter) (router.IJetRouter, error) {
 }
 ```
 
-当请求发起
+When a request is initiated
 
 ```shell
 $ ➜  ~ curl http://localhost:8080/v1/usage/week/111
 ["111"]%
 ```
 
-我们能够非常直观的观察输出
+We can observe the output in a very intuitive manner.
 
 ```shell
 2024/01/04 16:31:55.379274 [jet][INFO] | 200 | | GET | /v1/usage/week/111 | elapsed [2.00150788s]
 ```
 
-当调用失败返回error时，后续的中间件将不再执行
+When an error is returned during the invocation and subsequent execution of the middleware, the following middleware will no longer be executed.
 
-#### recover中间件
+#### recover middleware
 
-可以使用`Jet`提供的默认的中间件
+you can use jet default middleware
 
 ```go
 func main() {
@@ -330,14 +333,14 @@ func main() {
 
 ```
 
-`Jet`会返回`Internal Server Error`，http code为`500`
+`Jet` will be return `Internal Server Error`，http code is`500`
 
 ![image-20240105110436328](https://cdn.fengxianhub.top/resources-master/image-20240105110436328.png)
 
-当然您也可以自定义您自己的中间件，但是要注意的是，中间件是后添加的后执行，先添加的先执行，为了避免`recover`中间件对其他中间件逻辑产生干扰，`Jet`建议您将中间件添加到第一个的位置
+Certainly, you can also customize your own middleware. However, please note that middleware is executed in the order they are added, with the later-added middleware being executed after the earlier-added ones. To avoid interference from the `recover` middleware on the logic of other middleware, Jet recommends adding your middleware in the first position.
 
 ```go
-// 如果返回 xxx, err，后续的中间件将不再执行
+// If you return xxx, err from a middleware, the subsequent middleware will not be executed.
 func RecoverJetMiddleware(next router.IJetRouter) (router.IJetRouter, error) {
 	return JetHandlerFunc(func(ctx *fasthttp.RequestCtx) {
 		defer func() {
@@ -411,7 +414,7 @@ Percentage of the requests served within a certain time (ms)
  100%     39 (longest request)
 ```
 
-二进制文件占用`14MB`，压测内存占用`6MB`
+The binary file occupies `14MB` of disk space, and during load testing, the memory usage is `6MB`.
 
 ![image-20240104182950530](https://cdn.fengxianhub.top/resources-master/image-20240104182950530.png)
 
