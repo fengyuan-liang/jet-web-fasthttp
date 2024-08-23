@@ -48,6 +48,11 @@ func (j *Server) RunLoop() {
 
 func (j *Server) Destroy() {
 	jetLog.Info("Jet server Destroy...")
+	err := fastHttpServer.Shutdown()
+	if err != nil {
+		jetLog.Errorf("fastHttpServer Shutdown ERROR: %v", err)
+		return
+	}
 }
 
 func NewByInject(jetControllerList inject.JetControllerList) commands.MainInstance {
