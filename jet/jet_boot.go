@@ -29,6 +29,10 @@ func SetFastHttpServer(server *fasthttp.Server) {
 	fastHttpServer = server
 }
 
+func FetchFastHttpServer() *fasthttp.Server {
+	return fastHttpServer
+}
+
 func (j *Server) Initialize() (err error) {
 	if localAddr == "" {
 		err = errors.New("addr is empty")
@@ -40,10 +44,11 @@ func (j *Server) Initialize() (err error) {
 func (j *Server) RunLoop() {
 	jetLog.Infof("jet server start on [%s] elapsed [%v]", localAddr, time.Since(startTime))
 	if fastHttpServer == nil {
-		jetLog.Errorf("%v", fasthttp.ListenAndServe(localAddr, router.ServeHTTP))
-	} else {
-		jetLog.Errorf("%v", fastHttpServer.ListenAndServe(localAddr))
+		fastHttpServer = &fasthttp.Server{
+			Handler: router.ServeHTTP,
+		}
 	}
+	jetLog.Fatalf("%v", fastHttpServer.ListenAndServe(localAddr))
 }
 
 func (j *Server) Destroy() {
