@@ -14,14 +14,19 @@ import (
 
 // --------------------------------------------------------------------
 
-var httpTraceLog = func() *xlog.Logger {
+var httpTraceLog *xlog.Logger
+
+func initLogger() {
 	logger := xlog.NewWith("jet")
 	logger.SetCalldPath(3)
 	logger.SetFlags(xlog.LstdFlags | xlog.Llevel)
-	return logger
-}()
+	httpTraceLog = logger
+}
 
 func httpTrace(start time.Time, traceName string) {
+	if httpTraceLog == nil {
+		initLogger()
+	}
 	httpTraceLog.Infof(" %v | elapsed [%v]", traceName, time.Since(start))
 }
 
@@ -75,7 +80,6 @@ var isTerminal = func() bool {
 	fileInfo, _ := os.Stdout.Stat()
 	return (fileInfo.Mode() & os.ModeCharDevice) != 0
 }()
-
 
 func TraceHttpReqByCtx(ctx *fasthttp.RequestCtx) func() {
 	pre := time.Now()
