@@ -73,13 +73,23 @@ type Logger struct {
 // The prefix appears at the beginning of each generated log line.
 // The flag argument defines the logging properties.
 func New(out io.Writer, prefix string, flag int, reqId string) *Logger {
+	if GlobalOutput != nil {
+		out = GlobalOutput
+	}
 	return &Logger{out: out, prefix: prefix, Level: 1, flag: flag, ReqId: reqId, CalldPath: 2}
 }
 
-var Std = New(os.Stderr, "", Ldefault, "")
+var (
+	GlobalOutput io.Writer
+	Std          = New(os.Stderr, "", Ldefault, "")
+)
 
 func NewWith(prefix string) *Logger {
-	return New(os.Stderr, prefix, Ldefault, "")
+	var out io.Writer = os.Stderr
+	if GlobalOutput != nil {
+		out = GlobalOutput
+	}
+	return New(out, prefix, Ldefault, "")
 }
 
 var genReqId = defaultGenReqId
@@ -94,12 +104,10 @@ func defaultGenReqId() string {
 }
 
 func GenReqId() string {
-
 	return genReqId()
 }
 
 func SetGenReqId(f func() string) {
-
 	if f == nil {
 		f = defaultGenReqId
 	}
@@ -412,6 +420,14 @@ func SetOutput(w io.Writer) {
 	Std.mu.Lock()
 	defer Std.mu.Unlock()
 	Std.out = w
+}
+
+// SetGlobalOutput sets all the output destination for the standard logger.
+func SetGlobalOutput(w io.Writer) {
+	Std.mu.Lock()
+	defer Std.mu.Unlock()
+	Std.out = w
+	GlobalOutput = w
 }
 
 // Flags returns the output flags for the standard logger.
