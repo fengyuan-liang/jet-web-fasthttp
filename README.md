@@ -1,263 +1,146 @@
 # Jet 🛩
 
-一款和gin不太一样的golang web服务器
+> 一款和 gin 不一样的 Go Web 框架 —— **约定式路由 + 反射绑定 + 依赖注入**，基于 fasthttp。
 
-## Overview
+## ✨ 特性
 
-- 异常简洁的路由规则，再也不用像gin一样写繁琐的路由，并且自动解析参数
-- 依赖注入 & 依赖倒置 & 开闭原则
-- 集成 fasthttp
-- 更加细粒度的Hook支持
-- DDD & 六边形架构
-- CQS & 聚合根
-- 一级缓存 & 二级缓存 & 防击穿（暂未实现）
-- 集成普罗米修斯（暂未实现）
-- AOP 集成（暂未实现）
+| 特性 | 说明 |
+|------|------|
+| 🎯 **约定式路由** | 方法名即路由声明，`GetV1UsageWeek` → `GET /v1/usage/week`，告别繁琐的手动注册 |
+| ⚡ **注册期签名固化** | 反射在注册期把方法签名归类为有限组合，运行期零额外反射开销 |
+| 🌳 **双层路由优化** | 静态路由走 `map`（O(1)），动态路由走泛型 Trie，`Get` 仅 77 ns/op |
+| 💉 **依赖注入** | 基于 `uber/dig`，`init() + Provide` 即可零配置装配整个应用 |
+| 🪝 **细粒度 Hook** | 参数解析前/后、方法执行前/后四个切面，接口式低侵入 |
+| 🔌 **自动参数绑定** | query / form / json body / uri 路径参数，自动注入到方法签名 |
+| 🚀 **高性能** | 基于 fasthttp，QPS 1.2 万+（见性能基准） |
+| 🛡 **优雅关闭** | 内建信号监听 + Shutdown，生命周期三段式管理 |
 
-## usage
+---
 
-```go
+## 🏗 架构
+
+Jet 采用 **门面 / 核心 / 工具** 三层结构，单向依赖，符合六边形架构思想。
+
+![image-20260802172102960](https://cdn.fengxianhub.top/resources-master/image-20260802172102960.png)
+
+### 请求处理流程
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant MW as Middleware<br/>(Recover/Trace)
+    participant R as JetRouter
+    participant T as Trie
+    participant H as handler
+    participant K as Hook
+    participant M as Controller Method
+
+    C->>MW: HTTP Request
+    MW->>R: next.ServeHTTP
+    R->>T: GetAndArgs(method + path)
+    T-->>R: (handler, cmdArgs)
+    R->>H: ServeHTTP(ctx, cmdArgs)
+    H->>K: PreMethodExecuteHook（鉴权）
+    H->>H: 参数解析 json/form/query
+    H->>K: PostParamsParseHook（校验）
+    H->>M: reflect.Call
+    M-->>H: (data, err)
+    H->>K: PostMethodExecuteHook（RESTful 包装）
+    H-->>C: HTTP Response
+```
+
+---
+
+## 🚀 快速开始
+
+### 安装
+
+```bash
 go get github.com/fengyuan-liang/jet-web-fasthttp
 ```
 
-## 使用说明
-
-一个完整的后端项目：https://github.com/AI-Dialogue-Hub/mxclub-server
-
-小demo如下
-
-```go
-// 在Jet中 路由是挂载在Controller上的，通过Controller进行路由分组
-type jetController struct{}
-
-var bootTestLog = xlog.NewWith("boot_test_log")
-
-func TestJetBoot(t *testing.T) {
-	jet.Register(&jetController{})
-	t.Logf("err:%v", jet.Run(":8080"))
-}
-
-// ----------------------------------------------------------------------
-
-// 参数解析完成之后的hook，您可以使用它对参数进行校验，例如使用`validated`进行
-func (j *jetController) PostParamsParseHook(param any) error {
-	if err := utils.Struct(param); err != nil {
-		return errors.New(utils.ProcessErr(param, err))
-	}
-	return nil
-}
-
-func (j *jetController) PostMethodExecuteHook(param any) (data any, err error) {
-  // 你可以通过controller方法执行完后的hook来restful方式的处理返回结果
-	return utils.ObjToJsonStr(param), nil
-}
-
-// curl http://localhost:8080/v1/usage/111/week  =>  {"code":401,"data":{},"msg":"bad token"}
-// if add -H "Authorization: <your_token_here>"  =>  {"code":200,"data":{},"msg":"msg"}
-func (j *jetController) PreMethodExecuteHook(ctx context.Ctx) (err error) {
-	if authorizationHeader := string(ctx.Request().Header.Peek("Authorization")); authorizationHeader == "" {
-		ctx.Response().SetStatusCode(401)
-		errInfo := map[string]any{"code": 401, "data": ctx.Keys(), "msg": "bad token"}
-		err = errors.New(utils.ObjToJsonStr(errInfo))
-	}
-	return
-}
-
-// ----------------------------------------------------------------------
-
-// 我们会尽可能的找到您需要的参数并将参数注入到您的结构体参数中
-type req struct {
-	Id   int    `json:"id" validate:"required" reg_err_info:"cannot empty"`
-	Name string `json:"name" validate:"required" reg_err_info:"cannot empty"`
-}
-
-func (j *jetController) PostV1UsageContext(ctx jet.Ctx, req *req) (map[string]any, error) {
-	ctx.Logger().Info("GetV1UsageContext")
-	ctx.Logger().Infof("req:%v", req)
-	ctx.Put("request uri", ctx.Request().URI().String())
-	ctx.Put("traceId", ctx.Logger().ReqId)
-	ctx.Put("req", req)
-	return ctx.Keys(), nil
-}
-
-
-func (j *jetController) GetV1UsageContext0(ctx Ctx, args *context.Args) (map[string]any, error) {
-	ctx.Logger().Info("GetV1UsageContext")
-	ctx.Put("request uri", ctx.Request().URI().String())
-	ctx.Put("traceId", ctx.Logger().ReqId)
-	ctx.Put("args", args)
-	return map[string]any{"code": 200, "data": ctx.Keys(), "msg": "ok"}, nil
-}
-
-func (j *jetController) GetV1UsageWeek0(args *context.Args) error {
-	bootTestLog.Infof("GetV1UsageWeek %v", *args)
-	return errors.New(utils.ObjToJsonStr(args.CmdArgs))
-}
-
-type Person struct {
-	Name string `json:"name"`
-	Age  int    `json:"age"`
-}
-
-func (j *jetController) GetV1Usage0Week(args *context.Args) (*Person, error) {
-	//bootTestLog.Infof("GetV1Usage0Week %v", *args)
-	return &Person{
-		Name: "张三",
-		Age:  18,
-	}, nil
-}
-
-func (j *jetController) GetV1UsageWeek(args string) (map[string]string, error) {
-	bootTestLog.Info("GetV1UsageWeek", args)
-	return map[string]string{"args": args}, nil
-}
-
-func (j *jetController) GetV1UsageWeekk0(args *context.Args) error {
-	bootTestLog.Infof("GetV1UsageWeekk0 %v", *args)
-	return errors.New(utils.ObjToJsonStr(args.CmdArgs))
-}
-
-```
-
-我们注意到，`UserController`的方法比较有意思，叫`GetV1UsageWeek`，其实这代表着我们有一个接口`v1/usage/week`已经写好了，请求方式为`Get`，我们请求的参数会自动注入到`r *Args`中
-
-```shell
-$ curl http://localhost/v1/usage/week?form_param1=1
-{"request_id":"ZRgQg3Osptrx","code":200,"message":"success","data":"1"}
-```
-
-如果想要定义`v1/usage/week/1`的形式，或者`v1/usage/1/week`，我们可以使用`0`或其他符号填充名字
-
-```go
-GetV1UsageWeek0 -> v1/usage/week/1 // 0的位置表示要接受一个可变的参数
-GetV1Usage0Week -> v1/usage/1/week
-```
-
-参数会默认注入到`CmdArgs`中
-
-```go
-func (u *UserController) GetV1Usage0Week(r *Args, env *rpc.Env) (*api.Response, error) {
-	return api.Success(xlog.GenReqId(), r.CmdArgs), nil
-}
-```
-
-```shell
-$ curl http://localhost/v1/usage/1/week
-{"request_id":"H5OQ4Jg0yBtg","code":200,"message":"success","data":["1"]}
-```
-
-### example
-
-```go
-func main() {
-	//jet.Register(&DemoController{})
-	xlog.SetOutputLevel(xlog.Ldebug)
-	jet.AddMiddleware(jet.TraceJetMiddleware)
-	jet.Run(":8080")
-}
-
-func init() {
-	jet.Provide(NewDemoController)
-}
-
-func NewDemoController() jet.ControllerResult {
-	return jet.NewJetController(&DemoController{})
-}
-
-type BaseController struct {
-	jet.IJetController
-}
-
-func (BaseController) PostParamsParseHook(param any) error {
-	if err := utils.Struct(param); err != nil {
-		return errors.New(utils.ProcessErr(param, err))
-	}
-	return nil
-}
-
-// PostMethodExecuteHook restful
-func (BaseController) PostMethodExecuteHook(param any) (data any, err error) {
-	// restful
-	return utils.ObjToJsonStr(param), nil
-}
-
-type DemoController struct {
-	BaseController
-}
-
-type Person struct {
-	Name string `json:"name"`
-	Age  int    `json:"age"`
-}
-// 路由 get /v1/usage/{id}/week 已经可以访问了
-func (j *DemoController) GetV1Usage0Week(ctx jet.Ctx, args *jet.Args) (*Person, error) {
-	ctx.Logger().Infof("GetV1Usage0Week %v", *args)
-	return &Person{
-		Name: "张三",
-		Age:  18,
-	}, nil
-}
-```
-
-## 更新计划
-
-### 1. Hook
-
-#### 1.1 参数相关
-
-- [x] 支持通过挂载hook对参数进行预解析、自定义参数校验规则（目前支持hook有）
-  - [x] PostParamsParseHook
-  - [x] PostRouteMountHook
-  - [x] PostMethodExecuteHook
-  - [x] PreMethodExecuteHook
-- [x] 添加hook注入自定义的`context`，便于进行鉴权以及链路追踪等操作
-
-### 2. 🤡Aspect（切面）支持
-
-#### 2.1 常规切面
-
-- [ ] 前置、后置、异常、环绕、最终五种切面
-
-### 3. 路由策略
-
-- [ ] 通过controller自定义路由前缀
-
-### 4. 依赖注入支持
-
-在Jet中，依赖注入（inject）是非常核心的概念，Jet中几乎所有的功能都通过依赖注入完成（Jet底层基于`dig`进行依赖注入实现）
-
-例如我们可以向`Jet`中提供`JetController`，`Jet`会自动获取到并且解析路由
-
-```go
-type jetController struct {
-	inject.IJetController
-}
-
-func NewDemoController() inject.JetControllerResult {
-	return inject.NewJetController(&jetController{})
-}
-
-func main() {
-  xlog.SetOutputLevel(xlog.Ldebug)
-	//Register(&jetController{})
-  // 通过依赖注入的方式，注册controller并启动
-	jet.Provide(NewDemoController)
-	jet.Run(":8080")
-}
-```
-
-Jet推荐将依赖注入贯穿整个程序的开发周期，包括`MVC`架构下的`repo`、`service`、`controller`，或者`DDD`架构下的`domain`
-
-可以使用下面的方式并结合`init`方法，进行自动注入到`Jet`中，并且维护整个程序的生命周期
+### 最小示例
 
 ```go
 package main
 
 import (
-	_ "xxx/apps/xxx/internal/component"
+	"github.com/fengyuan-liang/jet-web-fasthttp/jet"
+	"github.com/fengyuan-liang/jet-web-fasthttp/pkg/xlog"
+)
+
+func main() {
+	xlog.SetOutputLevel(xlog.Ldebug)
+	// 中间件：Recover 建议第一个添加，避免 panic 影响其他中间件
+	jet.AddMiddleware(jet.RecoverJetMiddleware, jet.TraceJetMiddleware)
+	jet.Register(&DemoController{})
+	jet.Run(":8080")
+}
+
+// DemoController 嵌入 BaseJetController 即可获得
+// 参数校验 + RESTful 返回的默认 Hook
+type DemoController struct {
+	jet.BaseJetController
+}
+
+type Person struct {
+	Name string `json:"name" form:"name"`
+	Age  int    `json:"age" form:"age"`
+}
+
+// GetV1Usage0Week 映射为 GET /v1/usage/{id}/week
+// 数字 0 是路径参数占位符，实际值会注入到 args.CmdArgs
+func (d *DemoController) GetV1Usage0Week(args *jet.Args) (*Person, error) {
+	return &Person{Name: "张三", Age: 18}, nil
+}
+```
+
+运行后：
+
+```bash
+$ curl http://localhost:8080/v1/usage/111/week
+{"name":"张三","age":18}
+```
+
+---
+
+## 📖 核心概念
+
+### 1. 约定式路由
+
+Jet 用 **方法名** 声明路由，无需手动注册。规则：
+
+- **首段大写前缀** → HTTP 动词（`Get` / `Post` / `Put` / `Delete`）
+- **剩余驼峰段** → URL 路径（自动转小写、以 `/` 分隔）
+- **数字 `0`** → 路径参数占位符，实际值注入到 `args.CmdArgs`
+
+| 方法名 | HTTP 方法 | 路由 |
+|--------|-----------|------|
+| `GetV1UsageWeek` | GET | `/v1/usage/week` |
+| `GetV1Usage0Week` | GET | `/v1/usage/{id}/week` |
+| `GetV1UsageWeek0` | GET | `/v1/usage/week/{id}` |
+| `PostV1UsageContext` | POST | `/v1/usage/context` |
+
+```go
+// GET /v1/usage/111/week  →  args.CmdArgs = ["111"]
+func (d *DemoController) GetV1Usage0Week(args *jet.Args) (*Person, error) {
+	id := args.CmdArgs[0] // "111"
+	// ...
+}
+```
+
+### 2. 依赖注入
+
+Jet 的几乎所有功能都基于 `uber/dig`。推荐用 `init() + Provide` 把依赖注入贯穿 repo / service / controller 全生命周期：
+
+```go
+package main
+
+// 通过空导入触发各层的 init()，自动注册到 Jet
+import (
 	_ "xxx/apps/xxx/internal/controller"
-	_ "xxx/apps/xxx/internal/server"
-	_ "xxx/domain/repo"
+	_ "xxx/apps/xxx/internal/repo"
+	_ "xxx/domain/service"
 )
 
 func main() {
@@ -265,166 +148,163 @@ func main() {
 }
 ```
 
-在其他领域层，我们需要将组件注册到`Jet`中
+在某层中：
 
 ```go
-// xxxController.go
-
+// user_controller.go
 func init() {
-  // provide your 
-  jet.Provide(NewXxxController)
+	jet.Provide(NewUserController)
 }
 
-type XxxController struct {
-  xxxRepo repo.XxxRepo
+type UserController struct {
+	userRepo repo.UserRepo
 }
 
-func NewXxxController(xxxRepo repo.XxxRepo) jet.ControllerResult {
-  return jet.NewJetController(&jetController{
-    xxxRepo: xxxRepo
-  })
+// 构造函数：dig 自动注入 userRepo
+func NewUserController(userRepo repo.UserRepo) jet.ControllerResult {
+	return jet.NewJetController(&UserController{userRepo: userRepo})
 }
 ```
 
-### 5. 中间件支持
+`jet.ControllerResult` 内部用 `dig.Out` + `group:"server"` 标记，Jet 启动时自动收集所有 Controller。
 
-`Jet`对于中间件的支持极其简单粗暴、明了；当我们添加多个中间件时，jet会从内到外进行执行，也就是后添加的先执行，后添加的后执行
+### 3. Hook 系统
 
-#### 日志中间件
+四种 Hook 覆盖 AOP 的「前置 / 环绕 / 后置」语义，**可选实现**，无侵入：
+
+| Hook | 触发时机 | 典型用途 |
+|------|----------|----------|
+| `PreMethodExecuteHook(ctx)` | 方法执行**前** | 鉴权、链路追踪初始化 |
+| `PostParamsParseHook(param)` | 参数解析完成**后** | 参数校验（validator） |
+| `PostMethodExecuteHook(data)` | 方法执行**后**、返回前 | RESTful 包装返回值 |
+| `PostRouteMountHook()` | 路由挂载**后** | 路由信息收集 |
+
+```go
+// 参数校验 Hook
+func (d *DemoController) PostParamsParseHook(param any) error {
+	if err := utils.Struct(param); err != nil {
+		return errors.New(utils.ProcessErr(param, err))
+	}
+	return nil
+}
+
+// RESTful 返回包装 Hook
+func (d *DemoController) PostMethodExecuteHook(param any) (data any, err error) {
+	return utils.ObjToJsonStr(param), nil
+}
+```
+
+> 💡 `jet.BaseJetController` 已内置上述两个 Hook 的默认实现，继承即用。
+
+### 4. 中间件
+
+Jet 中间件是「包装器」风格：接收下一个 router，返回新的 router。
+
+> ⚠️ **执行顺序**：**后添加的先执行**。因此 `Recover` 这类兜底中间件建议**第一个**添加，确保它处于调用链最外层。
 
 ```go
 func main() {
-	jet.Register(&jetController{})
-	jet.AddMiddleware(TraceJetMiddleware)
+	jet.AddMiddleware(jet.RecoverJetMiddleware, jet.TraceJetMiddleware)
+	jet.Register(&DemoController{})
 	jet.Run(":8080")
 }
 
-func TraceJetMiddleware(next router.IJetRouter) (router.IJetRouter, error) {
-	return JetHandlerFunc(func(ctx *fasthttp.RequestCtx) {
-		defer utils.TraceHttpReq(ctx, time.Now())
+// 自定义中间件
+func MyMiddleware(next router.IJetRouter) (router.IJetRouter, error) {
+	return jet.JetHandlerFunc(func(ctx *fasthttp.RequestCtx) {
+		start := time.Now()
 		next.ServeHTTP(ctx)
+		jet.TraceHttpReq(ctx, start)
 	}), nil
 }
 ```
 
-当请求发起
+内置中间件：
 
-```shell
-$ ➜  ~ curl http://localhost:8080/v1/usage/week/111
-["111"]%
-```
+- `jet.RecoverJetMiddleware` —— panic 兜底，返回 500
+- `jet.TraceJetMiddleware` —— 请求计时 + 彩色日志
 
-我们能够非常直观的观察输出
+![recover 中间件效果](https://cdn.fengxianhub.top/resources-master/image-20240105110436328.png)
 
-```shell
-2024/01/04 16:31:55.379274 [jet][INFO] | 200 | | GET | /v1/usage/week/111 | elapsed [2.00150788s]
-```
+### 5. 参数绑定
 
-当调用失败返回error时，后续的中间件将不再执行
+Jet 会根据方法签名 + Content-Type 自动解析参数并注入：
 
-#### recover中间件
-
-可以使用`Jet`提供的默认的中间件
+| 来源 | 触发条件 | 注入目标 |
+|------|----------|----------|
+| Query String | `?key=value` | 结构体 `form` tag 字段 |
+| Form | `application/x-www-form-urlencoded` / `multipart/form-data` | 结构体 `form` tag 字段 |
+| JSON Body | `application/json` | 结构体 `json` tag 字段 |
+| URI 路径 | 路由占位符 `0` | `args.CmdArgs []string` |
 
 ```go
-func main() {
-  jet.AddMiddleware(RecoverJetMiddleware)
-  jet.Run(":8080")
+type CreateUserReq struct {
+	Name string `json:"name" form:"name" validate:"required" reg_err_info:"姓名不能为空"`
+	Age  int    `json:"age"  form:"age"`
 }
 
-```
-
-`Jet`会返回`Internal Server Error`，http code为`500`
-
-![image-20240105110436328](https://cdn.fengxianhub.top/resources-master/image-20240105110436328.png)
-
-当然您也可以自定义您自己的中间件，但是要注意的是，中间件是后添加的后执行，先添加的先执行，为了避免`recover`中间件对其他中间件逻辑产生干扰，`Jet`建议您将中间件添加到第一个的位置
-
-```go
-// 如果返回 xxx, err，后续的中间件将不再执行
-func RecoverJetMiddleware(next router.IJetRouter) (router.IJetRouter, error) {
-	return JetHandlerFunc(func(ctx *fasthttp.RequestCtx) {
-		defer func() {
-			if err := recover(); err != nil {
-				handler.FailServerInternalErrorHandler(ctx, "Internal Server Error")
-				utils.PrintPanicInfo("Your server has experienced a panic, please check the stack log below")
-				debug.PrintStack()
-			}
-		}()
-		next.ServeHTTP(ctx)
-	}), nil
+// POST /v1/users
+// Content-Type: application/json
+// {"name":"张三","age":18}
+func (c *UserController) PostV1Users(ctx jet.Ctx, req *CreateUserReq) (*Person, error) {
+	ctx.Logger().Infof("create user: %+v", req)
+	return &Person{Name: req.Name, Age: req.Age}, nil
 }
 ```
 
-### 6. benchmark
+支持的参数组合（最多两个参数，其中可含一个 `jet.Ctx`）：
 
-```shell
-$ ab -c 400 -n 20000 http://localhost:8081/v1/usage/1111/week
-This is ApacheBench, Version 2.3 <$Revision: 1879490 $>
-Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
-Licensed to The Apache Software Foundation, http://www.apache.org/
-
-Benchmarking localhost (be patient)
-Completed 2000 requests
-Completed 4000 requests
-Completed 6000 requests
-Completed 8000 requests
-Completed 10000 requests
-Completed 12000 requests
-Completed 14000 requests
-Completed 16000 requests
-Completed 18000 requests
-Completed 20000 requests
-Finished 20000 requests
-
-
-Server Software:        JetServer
-Server Hostname:        localhost
-Server Port:            8081
-
-Document Path:          /v1/usage/1111/week
-Document Length:        76 bytes
-
-Concurrency Level:      400
-Time taken for tests:   1.661 seconds
-Complete requests:      20000
-Failed requests:        0
-Total transferred:      4060000 bytes
-HTML transferred:       1520000 bytes
-Requests per second:    12041.08 [#/sec] (mean)
-Time per request:       33.220 [ms] (mean)
-Time per request:       0.083 [ms] (mean, across all concurrent requests)
-Transfer rate:          2387.05 [Kbytes/sec] received
-
-Connection Times (ms)
-              min  mean[+/-sd] median   max
-Connect:        0    0   0.2      0       1
-Processing:     8   33   2.4     33      39
-Waiting:        1   17   8.8     17      37
-Total:          8   33   2.4     33      39
-
-Percentage of the requests served within a certain time (ms)
-  50%     33
-  66%     33
-  75%     34
-  80%     34
-  90%     35
-  95%     36
-  98%     37
-  99%     38
- 100%     39 (longest request)
+```
+(ctx) → (data, error)
+(req) → error
+(ctx, req) → (data, error)
+(req, ctx) → (data, error)
 ```
 
-二进制文件占用`14MB`，压测内存占用`6MB`
+---
 
-![image-20240104182950530](https://cdn.fengxianhub.top/resources-master/image-20240104182950530.png)
+## 📊 性能基准
 
-![image-20240104183001418](https://cdn.fengxianhub.top/resources-master/image-20240104183001418.png)
+测试环境：`ab -c 400 -n 20000 http://localhost:8081/v1/usage/1111/week`
 
-### 其他更新
+| 指标 | 数值 |
+|------|------|
+| QPS | **12041 req/s** |
+| 平均延迟（并发 400） | 33.2 ms |
+| 最长请求 | 39 ms |
+| 失败请求数 | 0 |
+| 二进制体积 | **14 MB** |
+| 运行时内存 | **6 MB** |
 
-**2023/12/18**
+![性能压测](https://cdn.fengxianhub.top/resources-master/image-20240104182950530.png)
 
-请求计时中间件，see`jet.TraceJetMiddleware`
+路由树基准（`go test -bench`）：
 
-![image-20231218173140763](https://cdn.fengxianhub.top/resources-master/image-20231218173140763.png)
+```
+BenchmarkRouterTrie_Add     2824297    425.9 ns/op    113 B/op    2 allocs/op
+BenchmarkRouterTrie_Get    14866627     77.9 ns/op     39 B/op    2 allocs/op
+BenchmarkRouterTrie_Remove 13333392     84.9 ns/op     63 B/op    2 allocs/op
+```
+
+---
+
+## 🗺 路线图
+
+- [ ] **AOP 切面**：前置 / 后置 / 异常 / 环绕 / 最终 五种切面
+- [ ] **路由增强**：Controller 自定义路由前缀、命名参数 `:id`、通配符
+- [ ] **缓存体系**：一级缓存 + 二级缓存 + 防击穿
+- [ ] **Prometheus 集成**：内置 RED 指标
+- [ ] **结构化日志**：JSON 输出 + traceId 跨服务传播
+
+---
+
+## 📚 更多
+
+- **完整项目示例**：[AI-Dialogue-Hub/mxclub-server](https://github.com/AI-Dialogue-Hub/mxclub-server)
+- **贡献指南**：见 [CONTRIBUTING.md](CONTRIBUTING.md)
+- **行为准则**：见 [code-of-conduct.md](code-of-conduct.md)
+- **License**：MIT，详见 [LICENSE](LICENSE)
+
+---
+
+> Jet 是一个持续演进的自研框架，欢迎 Issue 与 PR 🎉
